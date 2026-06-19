@@ -113,23 +113,6 @@
   }
   .start-btn:hover { transform: scale(1.05); box-shadow: 0 0 35px #f5c842aa; }
 
-  /* ── API KEY SETUP ── */
-  #api-setup {
-    position: fixed; inset: 0; background: #0e0a18;
-    display: none; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 150; gap: 16px; padding: 30px; text-align: center;
-  }
-  #api-setup h2 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.6rem; }
-  #api-setup p { color: #c9b88a; max-width: 460px; line-height: 1.7; font-size: 0.95rem; }
-  #api-setup .key-note { color: #888; font-size: 0.8rem; max-width: 460px; line-height: 1.6; }
-  #api-key-input {
-    background: #1a1230; border: 1px solid #3a2d6a; color: var(--parchment);
-    padding: 12px 18px; font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
-    border-radius: 4px; width: 360px; max-width: 100%; text-align: center;
-  }
-  #api-key-input:focus { outline: none; border-color: var(--gold); }
-  .api-btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
   #settings-btn {
     position: fixed; bottom: 14px; right: 14px;
     background: #1a1230; border: 1px solid #3a2d6a; color: #a89878;
@@ -480,16 +463,6 @@
 <button id="sound-btn" onclick="toggleSound()">🔊 Sound ON</button>
 
 <!-- API KEY SETUP -->
-<div id="api-setup">
-  <h2>🔑 Magic Key Required</h2>
-  <p>This game uses Google Gemini AI to tell the story! A parent or guardian needs to enter a free Gemini API key to unlock the adventure. Get one free at <strong style="color:var(--gold)">aistudio.google.com</strong> → Get API Key.</p>
-  <input type="password" id="api-key-input" placeholder="AIza...">
-  <div class="api-btn-row">
-    <button class="start-btn" style="margin:0" onclick="saveApiKey()">UNLOCK THE REALM</button>
-    <button class="start-btn" style="margin:0;background:linear-gradient(135deg,#1a3a5c,#3070e8,#1a3a5c);color:#fff" onclick="closeApiSetup()">Cancel</button>
-  </div>
-  <p class="key-note">The key is stored only in your browser (localStorage) and never sent anywhere except directly to Google's servers. Gemini 1.5 Flash is free with generous daily limits — no credit card needed.</p>
-</div>
 
 <!-- CHARACTER CREATION -->
 <div id="char-screen">
@@ -1367,7 +1340,7 @@ function doLoad(slot) {
     if (el) el.textContent = 'Exploring';
   });
 
-  ['title-screen','char-screen','api-setup'].forEach(id => document.getElementById(id).style.display='none');
+  ['title-screen','char-screen'].forEach(id => document.getElementById(id).style.display='none');
   document.getElementById('game-screen').style.display = 'flex';
   document.getElementById('settings-btn').style.display = 'block';
   document.getElementById('cmd-input').disabled = false;

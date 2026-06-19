@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celina's Quest — Three Kingdoms</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English:ital@0;1&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --sky: #a8d8f0; --sky-dark: #1a3a5c; --sky-glow: #7ec8e3;
+    --sea: #0d6e6e; --sea-dark: #021a1a; --sea-glow: #00e5c0;
+    --under: #4a0080; --under-dark: #0d0015; --under-glow: #c040ff;
+    --ruins-glow: #ffcc44;
+    --celestial-glow: #b8c8ff;
+    --neutral-dark: #0e0a18;
+    --gold: #f5c842; --parchment: #f0e6c8; --ink: #1a1208; --blood: #8b1a1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--neutral-dark); color: var(--parchment);
+    font-family: 'IM Fell English', serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; overflow-x: hidden;
+  }
+
+  /* ── INTRO CUTSCENE ── */
+  #intro-screen {
+    position: fixed; inset: 0; background: #000;
+    z-index: 300; overflow: hidden;
+  }
+  .intro-stars {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      radial-gradient(circle, #fff 1px, transparent 1px),
+      radial-gradient(circle, #fff 1px, transparent 1px),
+      radial-gradient(circle, #ffffff60 1px, transparent 1px);
+    background-size: 220px 220px, 310px 310px, 170px 170px;
+    background-position: 10px 10px, 90px 55px, 145px 30px;
+    opacity: 0.22;
+  }
+  .intro-slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px 24px; gap: 22px;
+    opacity: 0; transition: opacity 0.9s ease;
+  }
+  .intro-slide.active { opacity: 1; }
+  .intro-slide .i-icon { font-size: clamp(3.5rem, 10vw, 6rem); }
+  .intro-slide .i-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.1rem, 4vw, 2rem);
+    color: var(--gold); letter-spacing: 3px;
+    text-shadow: 0 0 30px #f5c84266;
+  }
+  .intro-slide .i-text {
+    font-size: clamp(0.88rem, 2.4vw, 1.05rem);
+    color: #c9b88a; max-width: 520px; line-height: 1.85; font-style: italic;
+  }
+  .s1 { background: radial-gradient(ellipse, #0a081e 0%, #000 80%); }
+  .s2 { background: radial-gradient(ellipse, #071428 0%, #000 80%); }
+  .s3 { background: radial-gradient(ellipse, #001414 0%, #000 80%); }
+  .s4 { background: radial-gradient(ellipse, #160028 0%, #000 80%); }
+  .s5 { background: radial-gradient(ellipse, #1a1000 0%, #000 80%); }
+  .s6 { background: radial-gradient(ellipse, #100a20 0%, #000 80%); }
+  .intro-bottom {
+    position: absolute; bottom: 24px; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .intro-dots { display: flex; gap: 8px; }
+  .intro-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffffff28; transition: background 0.4s; }
+  .intro-dot.on { background: var(--gold); }
+  .intro-skip {
+    position: absolute; right: 24px;
+    background: #fff1; border: 1px solid #fff2; color: #ffffff66;
+    padding: 7px 16px; border-radius: 4px;
+    font-family: 'Cinzel', serif; font-size: 0.72rem; cursor: pointer;
+    letter-spacing: 1px; transition: all 0.2s;
+  }
+  .intro-skip:hover { color: #fff; background: #fff2; }
+
+  /* ── TITLE SCREEN ── */
+  #title-screen {
+    position: fixed; inset: 0; background: #0e0a18;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100; text-align: center; gap: 18px;
+  }
+  #title-screen h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 6vw, 4.5rem); color: var(--gold);
+    text-shadow: 0 0 30px #f5c84288, 0 2px 0 #5a3a00; letter-spacing: 4px;
+  }
+  #title-screen p { font-size: 1.05rem; color: #c9b88a; max-width: 480px; line-height: 1.7; }
+  .kingdom-badges { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 6px 0; }
+  .badge {
+    padding: 7px 16px; border-radius: 30px;
+    font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: 2px; border: 1px solid;
+  }
+  .badge.sky       { color: var(--sky);            border-color: var(--sky);            background: #a8d8f011; }
+  .badge.sea       { color: var(--sea-glow);       border-color: var(--sea-glow);       background: #00e5c011; }
+  .badge.under     { color: var(--under-glow);     border-color: var(--under-glow);     background: #c040ff11; }
+  .badge.ruins     { color: var(--ruins-glow);     border-color: var(--ruins-glow);     background: #ffcc4411; }
+  .badge.celestial { color: var(--celestial-glow); border-color: var(--celestial-glow); background: #b8c8ff11; }
+  .start-btn {
+    margin-top: 8px; padding: 14px 48px;
+    background: linear-gradient(135deg, #8b6914, #f5c842, #8b6914);
+    color: var(--ink); border: none; border-radius: 4px;
+    font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 700;
+    letter-spacing: 3px; cursor: pointer;
+    box-shadow: 0 0 20px #f5c84255; transition: all 0.2s;
+  }
+  .start-btn:hover { transform: scale(1.05); box-shadow: 0 0 35px #f5c842aa; }
+
+  /* ── API KEY SETUP ── */
+  #api-setup {
+    position: fixed; inset: 0; background: #0e0a18;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 150; gap: 16px; padding: 30px; text-align: center;
+  }
+  #api-setup h2 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.6rem; }
+  #api-setup p { color: #c9b88a; max-width: 460px; line-height: 1.7; font-size: 0.95rem; }
+  #api-setup .key-note { color: #888; font-size: 0.8rem; max-width: 460px; line-height: 1.6; }
+  #api-key-input {
+    background: #1a1230; border: 1px solid #3a2d6a; color: var(--parchment);
+    padding: 12px 18px; font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
+    border-radius: 4px; width: 360px; max-width: 100%; text-align: center;
+  }
+  #api-key-input:focus { outline: none; border-color: var(--gold); }
+  .api-btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  #settings-btn {
+    position: fixed; bottom: 14px; right: 14px;
+    background: #1a1230; border: 1px solid #3a2d6a; color: #a89878;
+    padding: 7px 14px; border-radius: 4px;
+    font-family: 'Cinzel', serif; font-size: 0.72rem;
+    cursor: pointer; z-index: 50; transition: all 0.15s;
+  }
+  #settings-btn:hover { border-color: var(--gold); color: var(--gold); }
+  #sound-btn {
+    position: fixed; bottom: 14px; left: 14px;
+    background: #1a1230; border: 1px solid #3a2d6a; color: #a89878;
+    padding: 7px 14px; border-radius: 4px;
+    font-family: 'Cinzel', serif; font-size: 0.72rem;
+    cursor: pointer; z-index: 50; transition: all 0.15s; display: none;
+  }
+  #sound-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── CHAR CREATION ── */
+  #char-screen {
+    position: fixed; inset: 0; background: #0e0a18;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100; padding: 30px; gap: 20px; overflow-y: auto;
+  }
+  #char-screen h2 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.8rem; text-align: center; }
+  .class-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px; max-width: 700px; width: 100%;
+  }
+  .class-card {
+    background: #1a1230; border: 1px solid #3a2d6a; border-radius: 8px;
+    padding: 16px; cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .class-card:hover, .class-card.selected {
+    border-color: var(--gold); background: #2a2040; box-shadow: 0 0 16px #f5c84244;
+  }
+  .class-card .icon { font-size: 2.2rem; }
+  .class-card .name { font-family: 'Cinzel', serif; color: var(--gold); margin: 6px 0 4px; font-size: 0.95rem; }
+  .class-card .desc { font-size: 0.8rem; color: #a89878; line-height: 1.4; }
+  .name-input-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .name-input-wrap label { font-family: 'Cinzel', serif; color: #c9b88a; font-size: 0.9rem; }
+  .name-input-wrap input {
+    background: #1a1230; border: 1px solid #3a2d6a; color: var(--parchment);
+    padding: 10px 18px; font-family: 'IM Fell English', serif; font-size: 1rem;
+    border-radius: 4px; width: 260px; text-align: center;
+  }
+  .name-input-wrap input:focus { outline: none; border-color: var(--gold); }
+
+  /* ── MAIN GAME ── */
+  #game-screen {
+    display: none; flex-direction: column;
+    width: 100%; max-width: 960px; min-height: 100vh; padding: 16px; gap: 12px;
+  }
+
+  /* HUD */
+  #hud {
+    background: #12092a; border: 1px solid #3a2d6a; border-radius: 8px;
+    padding: 12px 18px; display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; justify-content: space-between;
+  }
+  .hud-name { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1rem; }
+  .stat-bars { display: flex; gap: 14px; flex-wrap: wrap; }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; }
+  .stat-label { color: #a89878; font-family: 'Cinzel', serif; font-size: 0.7rem; }
+  .bar-wrap { width: 80px; height: 8px; background: #1a1230; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+  .hp-bar { background: linear-gradient(90deg, #8b1a1a, #e83030); }
+  .mp-bar { background: linear-gradient(90deg, #1a3a8b, #3070e8); }
+  .xp-bar { background: linear-gradient(90deg, #5a3a00, #f5c842); }
+  .hud-kingdom {
+    font-family: 'Cinzel', serif; font-size: 0.8rem;
+    padding: 4px 12px; border-radius: 20px; border: 1px solid;
+  }
+  .hud-kingdom.sky       { color: var(--sky);            border-color: var(--sky); }
+  .hud-kingdom.sea       { color: var(--sea-glow);       border-color: var(--sea-glow); }
+  .hud-kingdom.under     { color: var(--under-glow);     border-color: var(--under-glow); }
+  .hud-kingdom.ruins     { color: var(--ruins-glow);     border-color: var(--ruins-glow); }
+  .hud-kingdom.celestial { color: var(--celestial-glow); border-color: var(--celestial-glow); }
+  .hud-kingdom.start     { color: var(--gold);           border-color: var(--gold); }
+
+  /* OUTPUT */
+  #output {
+    background: #0c071f; border: 1px solid #2a1f50; border-radius: 8px;
+    padding: 20px; min-height: 320px; max-height: 440px;
+    overflow-y: auto; font-size: 1rem; line-height: 1.75; scroll-behavior: smooth;
+  }
+  #output::-webkit-scrollbar { width: 6px; }
+  #output::-webkit-scrollbar-track { background: #0c071f; }
+  #output::-webkit-scrollbar-thumb { background: #3a2d6a; border-radius: 3px; }
+  .msg { margin-bottom: 10px; }
+  .msg-narrate       { color: var(--parchment); }
+  .msg-system        { color: var(--gold); font-family: 'Cinzel', serif; font-size: 0.85rem; }
+  .msg-player        { color: #7ec8e3; font-style: italic; }
+  .msg-combat        { color: #e83030; }
+  .msg-loot          { color: #50e878; }
+  .msg-quest         { color: var(--ruins-glow); font-family: 'Cinzel', serif; font-size: 0.85rem; }
+  .msg-kingdom-sky       { color: var(--sky); font-family: 'Cinzel', serif; }
+  .msg-kingdom-sea       { color: var(--sea-glow); font-family: 'Cinzel', serif; }
+  .msg-kingdom-under     { color: var(--under-glow); font-family: 'Cinzel', serif; }
+  .msg-kingdom-ruins     { color: var(--ruins-glow); }
+  .msg-kingdom-celestial { color: var(--celestial-glow); font-family: 'Cinzel', serif; }
+
+  /* QUICK ACTIONS */
+  #quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .quick-btn {
+    background: #1a1230; border: 1px solid #3a2d6a; color: #c9b88a;
+    padding: 10px 16px; border-radius: 6px; font-family: 'IM Fell English', serif;
+    font-size: 0.95rem; cursor: pointer; transition: all 0.15s;
+    min-height: 44px; touch-action: manipulation;
+  }
+  .quick-btn:hover { border-color: var(--gold); color: var(--gold); }
+  @media(max-width:600px){ .quick-btn{padding:12px 18px;font-size:1rem;min-height:48px;} #quick-actions{gap:10px;} }
+
+  /* INPUT */
+  #input-area { display: flex; gap: 10px; }
+  #cmd-input {
+    flex: 1; background: #12092a; border: 1px solid #3a2d6a; color: var(--parchment);
+    padding: 12px 16px; font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; border-radius: 4px;
+  }
+  #cmd-input:focus { outline: none; border-color: var(--gold); }
+  #cmd-input::placeholder { color: #3a2d6a; }
+  #send-btn {
+    background: linear-gradient(135deg, #5a3a00, #8b6914);
+    border: 1px solid var(--gold); color: var(--gold);
+    padding: 12px 22px; font-family: 'Cinzel', serif; font-size: 0.9rem;
+    border-radius: 4px; cursor: pointer; transition: all 0.15s;
+  }
+  #send-btn:hover { background: linear-gradient(135deg, #8b6914, #f5c842); color: var(--ink); }
+
+  /* PANELS */
+  .panels-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media(max-width:700px){ .panels-row{grid-template-columns:1fr;} }
+  .panel { background: #0c071f; border: 1px solid #2a1f50; border-radius: 8px; padding: 14px; }
+  .panel h3 {
+    font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.8rem;
+    letter-spacing: 2px; margin-bottom: 8px;
+    border-bottom: 1px solid #2a1f50; padding-bottom: 6px;
+  }
+  .inv-list, .stat-list { list-style: none; font-size: 0.85rem; color: #c9b88a; line-height: 1.8; }
+  .inv-list li::before { content: "⚔ "; color: var(--gold); }
+  .stat-list li { display: flex; justify-content: space-between; }
+  .stat-list .val { color: var(--parchment); font-family: 'Share Tech Mono', monospace; }
+
+  /* BESTIARY */
+  #bestiary-list {
+    list-style: none; font-size: 0.82rem; color: #c9b88a; line-height: 1.85;
+    max-height: 150px; overflow-y: auto;
+  }
+  #bestiary-list::-webkit-scrollbar { width: 4px; }
+  #bestiary-list::-webkit-scrollbar-thumb { background: #3a2d6a; }
+  #bestiary-list li { display: flex; justify-content: space-between; align-items: center; }
+  .beast-name { color: #e0d0b0; }
+  .beast-count {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.72rem;
+    color: #e83030; background: #2a0808; padding: 1px 6px; border-radius: 3px;
+  }
+  .empty-note { color: #3a2d6a; font-size: 0.8rem; font-style: italic; }
+
+  /* QUEST LOG */
+  #quest-panel { background: #0c071f; border: 1px solid #2a1f50; border-radius: 8px; padding: 14px; }
+  #quest-panel h3 {
+    font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.8rem;
+    letter-spacing: 2px; margin-bottom: 8px;
+    border-bottom: 1px solid #2a1f50; padding-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #quest-count { color: #5a4a30; font-size: 0.68rem; font-weight: normal; letter-spacing: 0; }
+  #quest-list { list-style: none; font-size: 0.84rem; color: #c9b88a; line-height: 1.9; }
+  #quest-list li { display: flex; align-items: center; gap: 8px; }
+  #quest-list li.done { text-decoration: line-through; color: #5a4a30; }
+
+  /* KINGDOM MAP */
+  #map-area { background: #0c071f; border: 1px solid #2a1f50; border-radius: 8px; padding: 14px; }
+  #map-area h3 {
+    font-family: 'Cinzel', serif; color: var(--gold); font-size: 0.8rem;
+    letter-spacing: 2px; margin-bottom: 10px;
+    border-bottom: 1px solid #2a1f50; padding-bottom: 6px;
+  }
+  .map-kingdoms { display: flex; gap: 10px; flex-wrap: wrap; }
+  .map-k {
+    flex: 1; min-width: 110px; border-radius: 6px; padding: 10px;
+    cursor: pointer; border: 1px solid; transition: all 0.2s; text-align: center;
+  }
+  .map-k.sky       { border-color: var(--sky);            background: #a8d8f008; color: var(--sky); }
+  .map-k.sea       { border-color: var(--sea-glow);       background: #00e5c008; color: var(--sea-glow); }
+  .map-k.under     { border-color: var(--under-glow);     background: #c040ff08; color: var(--under-glow); }
+  .map-k.ruins     { border-color: var(--ruins-glow);     background: #ffcc4408; color: var(--ruins-glow); }
+  .map-k.celestial { border-color: var(--celestial-glow); background: #b8c8ff08; color: var(--celestial-glow); opacity: 0.35; pointer-events: none; }
+  .map-k.celestial.unlocked { opacity: 1; pointer-events: auto; }
+  .map-k:hover { opacity: 0.82; transform: scale(1.03); }
+  .map-k .k-icon   { font-size: 1.6rem; }
+  .map-k .k-name   { font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 1px; margin-top: 4px; }
+  .map-k .k-status { font-size: 0.66rem; color: #888; margin-top: 2px; }
+
+  .loading-dots::after { content: '...'; animation: dots 1.2s infinite; }
+  @keyframes dots { 0%,100%{content:'.'} 33%{content:'..'} 66%{content:'...'} }
+  #thinking { display:none; color:#5a4a8a; font-size:0.85rem; font-style:italic; padding:4px 0; }
+
+  /* SAVE BAR */
+  #save-bar {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    background: #12092a; border: 1px solid #2a1f50; border-radius: 8px; padding: 10px 14px;
+  }
+  #save-bar > span { font-family: 'Cinzel', serif; font-size: 0.75rem; color: #a89878; letter-spacing: 1px; margin-right: 4px; }
+  .save-slot {
+    display: flex; align-items: center; gap: 6px;
+    background: #1a1230; border: 1px solid #3a2d6a; border-radius: 6px; padding: 6px 10px;
+    transition: all 0.15s; font-size: 0.78rem; color: #c9b88a; font-family: 'IM Fell English', serif;
+  }
+  .save-slot.has-data { border-color: #5a3a00; color: var(--gold); }
+  .slot-icon { font-size: 1rem; }
+  .slot-info { display: flex; flex-direction: column; line-height: 1.2; }
+  .slot-name { font-family: 'Cinzel', serif; font-size: 0.7rem; }
+  .slot-detail { font-size: 0.65rem; color: #888; }
+  .save-btn-group { display: flex; gap: 4px; }
+  .sb {
+    padding: 3px 8px; border-radius: 3px; border: 1px solid;
+    font-size: 0.65rem; cursor: pointer; font-family: 'Cinzel', serif;
+    letter-spacing: 0.5px; transition: all 0.15s;
+  }
+  .sb.save-it { border-color: #5a3a00; color: #f5c842; background: #1a0e00; }
+  .sb.save-it:hover { background: #5a3a00; }
+  .sb.load-it { border-color: #1a3a5c; color: var(--sky); background: #0a1220; }
+  .sb.load-it:hover { background: #1a3a5c; }
+  .sb.del-it  { border-color: #3a1010; color: #e83030; background: #1a0808; }
+  .sb.del-it:hover { background: #3a1010; }
+
+  /* MODAL */
+  #save-modal {
+    display: none; position: fixed; inset: 0;
+    background: #0008; z-index: 200; align-items: center; justify-content: center;
+  }
+  .modal-box {
+    background: #12092a; border: 1px solid var(--gold); border-radius: 10px;
+    padding: 28px 32px; text-align: center; max-width: 340px; width: 90%;
+    box-shadow: 0 0 40px #f5c84233;
+  }
+  .modal-box h3 { font-family: 'Cinzel', serif; color: var(--gold); margin-bottom: 12px; font-size: 1.1rem; letter-spacing: 2px; }
+  .modal-box p  { color: #c9b88a; font-size: 0.9rem; margin-bottom: 20px; }
+  .modal-btns   { display: flex; gap: 10px; justify-content: center; }
+  .modal-btns button { padding: 8px 22px; border-radius: 4px; font-family: 'Cinzel', serif; font-size: 0.85rem; cursor: pointer; border: 1px solid; transition: all 0.15s; }
+  .modal-ok     { background: #5a3a00; border-color: var(--gold); color: var(--gold); }
+  .modal-ok:hover { background: #8b6914; }
+  .modal-cancel { background: #1a1230; border-color: #3a2d6a; color: #a89878; }
+  .modal-cancel:hover { background: #2a2040; }
+</style>
+</head>
+<body>
+
+<!-- INTRO CUTSCENE -->
+<div id="intro-screen">
+  <div class="intro-stars"></div>
+  <div class="intro-slide s1 active">
+    <div class="i-icon">🌌</div>
+    <div class="i-title">IN AN AGE OF FORGOTTEN MAGIC</div>
+    <div class="i-text">Long before memory, five kingdoms carved the world from chaos — each ruled by a power older than gods, each jealously guarding its secrets.</div>
+  </div>
+  <div class="intro-slide s2">
+    <div class="i-icon">☁️</div>
+    <div class="i-title">THE SKY KINGDOM</div>
+    <div class="i-text">High above the mortal realm, dragon lords soar through eternal storms. Their hoards glitter with forbidden lore — and their riddles have no mercy for the unprepared.</div>
+  </div>
+  <div class="intro-slide s3">
+    <div class="i-icon">🌊</div>
+    <div class="i-title">THE SEA KINGDOM</div>
+    <div class="i-text">Beneath the black waves, sea witches weave curses into the current. Merfolk bargain in stolen breath. The depths hide wonders — and monsters — beyond imagining.</div>
+  </div>
+  <div class="intro-slide s4">
+    <div class="i-icon">💀</div>
+    <div class="i-title">THE UNDERWORLD KINGDOM</div>
+    <div class="i-text">In the realm below all realms, demons feast on the living and the dead alike. Only the truly brave — or the truly desperate — venture past its gates.</div>
+  </div>
+  <div class="intro-slide s5">
+    <div class="i-icon">🏛️</div>
+    <div class="i-title">THE ANCIENT RUINS</div>
+    <div class="i-text">Between kingdoms lie the shattered remains of a civilization that once ruled them all — riddled with traps, puzzles, and treasures that have outlasted empires.</div>
+  </div>
+  <div class="intro-slide s6">
+    <div class="i-icon">⚔️</div>
+    <div class="i-title">ONE HERO RISES</div>
+    <div class="i-text">The fate of five worlds hangs in the balance. Prove yourself worthy — and the Celestial Peak will open its gates. Are you ready?</div>
+  </div>
+  <div class="intro-bottom">
+    <div class="intro-dots" id="intro-dots"></div>
+    <button class="intro-skip" onclick="skipIntro()">SKIP ▶</button>
+  </div>
+</div>
+
+<!-- TITLE SCREEN -->
+<div id="title-screen">
+  <h1>⚔ CELINA'S QUEST ⚔</h1>
+  <p>Five realms await. Choose your path wisely — dragons, witches, ancient puzzles, and divine trials guard the greatest power.</p>
+  <div class="kingdom-badges">
+    <span class="badge sky">☁ SKY KINGDOM</span>
+    <span class="badge sea">🌊 SEA KINGDOM</span>
+    <span class="badge under">💀 UNDERWORLD</span>
+    <span class="badge ruins">🏛 ANCIENT RUINS</span>
+    <span class="badge celestial">✨ CELESTIAL PEAK</span>
+  </div>
+  <button class="start-btn" onclick="beginOrApiSetup()">BEGIN YOUR QUEST</button>
+</div>
+
+<button id="settings-btn" onclick="openApiSetup()" style="display:none">⚙ API Key</button>
+<button id="sound-btn" onclick="toggleSound()">🔊 Sound ON</button>
+
+<!-- API KEY SETUP -->
+<div id="api-setup">
+  <h2>🔑 Magic Key Required</h2>
+  <p>This game uses Google Gemini AI to tell the story! A parent or guardian needs to enter a free Gemini API key to unlock the adventure. Get one free at <strong style="color:var(--gold)">aistudio.google.com</strong> → Get API Key.</p>
+  <input type="password" id="api-key-input" placeholder="AIza...">
+  <div class="api-btn-row">
+    <button class="start-btn" style="margin:0" onclick="saveApiKey()">UNLOCK THE REALM</button>
+    <button class="start-btn" style="margin:0;background:linear-gradient(135deg,#1a3a5c,#3070e8,#1a3a5c);color:#fff" onclick="closeApiSetup()">Cancel</button>
+  </div>
+  <p class="key-note">The key is stored only in your browser (localStorage) and never sent anywhere except directly to Google's servers. Gemini 1.5 Flash is free with generous daily limits — no credit card needed.</p>
+</div>
+
+<!-- CHARACTER CREATION -->
+<div id="char-screen">
+  <h2>⚜ Choose Your Class ⚜</h2>
+  <div class="name-input-wrap">
+    <label>YOUR HERO'S NAME</label>
+    <input type="text" id="hero-name" placeholder="Enter your name..." maxlength="20">
+  </div>
+  <div class="class-grid">
+    <div class="class-card" onclick="selectClass(this,'Warrior','⚔️')">
+      <div class="icon">⚔️</div>
+      <div class="name">Warrior</div>
+      <div class="desc">High attack & defense. Bonus damage to dragons. Slower spellcasting.</div>
+    </div>
+    <div class="class-card" onclick="selectClass(this,'Mage','🔮')">
+      <div class="icon">🔮</div>
+      <div class="name">Mage</div>
+      <div class="desc">Powerful spells & puzzles solved faster. Lower HP. Sky Kingdom advantage.</div>
+    </div>
+    <div class="class-card" onclick="selectClass(this,'Rogue','🗡️')">
+      <div class="icon">🗡️</div>
+      <div class="name">Rogue</div>
+      <div class="desc">Stealth & critical strikes. Finds hidden loot. Sea Kingdom advantage.</div>
+    </div>
+    <div class="class-card" onclick="selectClass(this,'Witch Hunter','🏹')">
+      <div class="icon">🏹</div>
+      <div class="name">Witch Hunter</div>
+      <div class="desc">Bonus vs witches & dark magic. Underworld advantage. Medium stats.</div>
+    </div>
+    <div class="class-card" onclick="selectClass(this,'Necromancer','💀')">
+      <div class="icon">💀</div>
+      <div class="name">Necromancer</div>
+      <div class="desc">Summon undead allies. Strong in Underworld. Weak vs holy attacks.</div>
+    </div>
+    <div class="class-card" onclick="selectClass(this,'Sea Warden','🔱')">
+      <div class="icon">🔱</div>
+      <div class="name">Sea Warden</div>
+      <div class="desc">Breathe underwater. Sea Kingdom mastery. Bonus loot from sea creatures.</div>
+    </div>
+  </div>
+  <button class="start-btn" onclick="startGame()">ENTER THE REALM</button>
+</div>
+
+<!-- MAIN GAME -->
+<div id="game-screen">
+  <div id="hud">
+    <div class="hud-name" id="hud-name">Hero</div>
+    <div class="stat-bars">
+      <div class="stat">
+        <span class="stat-label">HP</span>
+        <div class="bar-wrap"><div class="bar-fill hp-bar" id="hp-bar" style="width:100%"></div></div>
+        <span id="hp-text" style="font-size:0.75rem;color:#e83030">100/100</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">MP</span>
+        <div class="bar-wrap"><div class="bar-fill mp-bar" id="mp-bar" style="width:100%"></div></div>
+        <span id="mp-text" style="font-size:0.75rem;color:#3070e8">60/60</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">XP</span>
+        <div class="bar-wrap"><div class="bar-fill xp-bar" id="xp-bar" style="width:0%"></div></div>
+        <span id="xp-text" style="font-size:0.75rem;color:#f5c842">0/100</span>
+      </div>
+    </div>
+    <div class="hud-kingdom start" id="hud-kingdom">⚔ REALM</div>
+  </div>
+
+  <div id="output"></div>
+  <div id="thinking">✦ The realm is thinking<span class="loading-dots"></span></div>
+
+  <div id="quick-actions">
+    <button class="quick-btn" onclick="sendQuick('look around')">👁 Look</button>
+    <button class="quick-btn" onclick="sendQuick('check inventory')">🎒 Inventory</button>
+    <button class="quick-btn" onclick="sendQuick('check my stats')">📊 Stats</button>
+    <button class="quick-btn" onclick="sendQuick('attack')">⚔ Attack</button>
+    <button class="quick-btn" onclick="sendQuick('flee')">🏃 Flee</button>
+    <button class="quick-btn" onclick="sendQuick('search for loot')">✨ Search</button>
+    <button class="quick-btn" onclick="sendQuick('rest')">💤 Rest</button>
+    <button class="quick-btn" onclick="sendQuick('check quest log')">📜 Quests</button>
+  </div>
+
+  <div id="input-area">
+    <input type="text" id="cmd-input" placeholder="What do you do? (e.g. 'attack the dragon', 'go north', 'solve the puzzle')" maxlength="200">
+    <button id="send-btn" onclick="sendCommand()">ENTER</button>
+  </div>
+
+  <div class="panels-row">
+    <div class="panel">
+      <h3>INVENTORY</h3>
+      <ul class="inv-list" id="inv-list"><li>Empty satchel</li></ul>
+    </div>
+    <div class="panel">
+      <h3>CHARACTER</h3>
+      <ul class="stat-list" id="stat-display">
+        <li><span>Class</span>  <span class="val" id="s-class">—</span></li>
+        <li><span>Level</span>  <span class="val" id="s-level">1</span></li>
+        <li><span>Attack</span> <span class="val" id="s-atk">—</span></li>
+        <li><span>Defense</span><span class="val" id="s-def">—</span></li>
+        <li><span>Magic</span>  <span class="val" id="s-mag">—</span></li>
+        <li><span>Kills</span>  <span class="val" id="s-kills">0</span></li>
+        <li><span>Realm</span>  <span class="val" id="s-kingdom">None</span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>📖 BESTIARY</h3>
+      <ul id="bestiary-list">
+        <li><span class="empty-note">No enemies slain yet...</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- QUEST LOG -->
+  <div id="quest-panel">
+    <h3>📜 QUEST LOG <span id="quest-count">(0 active)</span></h3>
+    <ul id="quest-list">
+      <li><span class="empty-note">No quests yet — explore the world!</span></li>
+    </ul>
+  </div>
+
+  <!-- SAVE BAR -->
+  <div id="save-bar">
+    <span>💾 SAVES</span>
+    <div id="slot-1" class="save-slot">
+      <div class="slot-icon">📜</div>
+      <div class="slot-info">
+        <div class="slot-name" id="slot-1-name">Slot 1 — Empty</div>
+        <div class="slot-detail" id="slot-1-detail">No save data</div>
+      </div>
+      <div class="save-btn-group">
+        <button class="sb save-it" onclick="saveGame(1)">SAVE</button>
+        <button class="sb load-it" onclick="loadGame(1)">LOAD</button>
+        <button class="sb del-it"  onclick="deleteGame(1)">✕</button>
+      </div>
+    </div>
+    <div id="slot-2" class="save-slot">
+      <div class="slot-icon">📜</div>
+      <div class="slot-info">
+        <div class="slot-name" id="slot-2-name">Slot 2 — Empty</div>
+        <div class="slot-detail" id="slot-2-detail">No save data</div>
+      </div>
+      <div class="save-btn-group">
+        <button class="sb save-it" onclick="saveGame(2)">SAVE</button>
+        <button class="sb load-it" onclick="loadGame(2)">LOAD</button>
+        <button class="sb del-it"  onclick="deleteGame(2)">✕</button>
+      </div>
+    </div>
+    <div id="slot-3" class="save-slot">
+      <div class="slot-icon">📜</div>
+      <div class="slot-info">
+        <div class="slot-name" id="slot-3-name">Slot 3 — Empty</div>
+        <div class="slot-detail" id="slot-3-detail">No save data</div>
+      </div>
+      <div class="save-btn-group">
+        <button class="sb save-it" onclick="saveGame(3)">SAVE</button>
+        <button class="sb load-it" onclick="loadGame(3)">LOAD</button>
+        <button class="sb del-it"  onclick="deleteGame(3)">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="save-modal">
+    <div class="modal-box">
+      <h3 id="modal-title">Confirm</h3>
+      <p id="modal-msg">Are you sure?</p>
+      <div class="modal-btns">
+        <button class="modal-ok" id="modal-ok">Yes</button>
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="map-area">
+    <h3>WORLD MAP — CHOOSE YOUR DESTINATION</h3>
+    <div class="map-kingdoms">
+      <div class="map-k sky" onclick="sendQuick('travel to the Sky Kingdom')">
+        <div class="k-icon">☁️</div>
+        <div class="k-name">SKY KINGDOM</div>
+        <div class="k-status" id="sky-status">Unexplored</div>
+      </div>
+      <div class="map-k sea" onclick="sendQuick('travel to the Sea Kingdom')">
+        <div class="k-icon">🌊</div>
+        <div class="k-name">SEA KINGDOM</div>
+        <div class="k-status" id="sea-status">Unexplored</div>
+      </div>
+      <div class="map-k under" onclick="sendQuick('travel to the Underworld Kingdom')">
+        <div class="k-icon">💀</div>
+        <div class="k-name">UNDERWORLD</div>
+        <div class="k-status" id="under-status">Unexplored</div>
+      </div>
+      <div class="map-k ruins" onclick="sendQuick('travel to the Ancient Ruins')">
+        <div class="k-icon">🏛️</div>
+        <div class="k-name">ANCIENT RUINS</div>
+        <div class="k-status" id="ruins-status">Unexplored</div>
+      </div>
+      <div class="map-k celestial" id="map-celestial" onclick="travelCelestial()">
+        <div class="k-icon">✨</div>
+        <div class="k-name">CELESTIAL PEAK</div>
+        <div class="k-status" id="celestial-status">🔒 Locked</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// SOUND SYSTEM (Web Audio API — no libraries)
+// ══════════════════════════════════════════════
+let soundEnabled = true;
+let _actx = null;
+function actx() {
+  if (!_actx) _actx = new (window.AudioContext || window.webkitAudioContext)();
+  return _actx;
+}
+function resumeAudio() { try { actx().resume(); } catch(e){} }
+
+function tone(freq, type, dur, vol, delay = 0) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = actx();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    const t = ctx.currentTime + delay;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.02);
+  } catch(e) {}
+}
+
+const snd = {
+  click:    () => tone(700, 'sine', 0.06, 0.07),
+  hit:      () => { tone(160, 'sawtooth', 0.14, 0.28); tone(80, 'square', 0.09, 0.15, 0.06); },
+  loot:     () => [900,1100,1400].forEach((f,i) => tone(f,'sine',0.18,0.11,i*0.07)),
+  levelup:  () => [262,330,392,523,659].forEach((f,i) => tone(f,'sine',0.28,0.14,i*0.1)),
+  death:    () => [220,175,140,100,65].forEach((f,i) => tone(f,'sawtooth',0.38,0.2,i*0.13)),
+  puzzle:   () => [440,554,659].forEach((f,i) => tone(f,'triangle',0.22,0.1,i*0.13)),
+  questNew: () => [330,440,554].forEach((f,i) => tone(f,'sine',0.2,0.11,i*0.1)),
+  questDone:() => [392,494,587,784].forEach((f,i) => tone(f,'sine',0.24,0.14,i*0.09)),
+  kingdom:  (k) => {
+    const m = {sky:[440,554,659],sea:[220,277,330],under:[110,138,165],ruins:[330,415,494],celestial:[528,660,880]};
+    (m[k]||m.sky).forEach((f,i) => tone(f,'sine',0.48,0.12,i*0.18));
+  }
+};
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('sound-btn').textContent = soundEnabled ? '🔊 Sound ON' : '🔇 Sound OFF';
+}
+
+// ══════════════════════════════════════════════
+// INTRO CUTSCENE
+// ══════════════════════════════════════════════
+const SLIDE_COUNT = 6;
+const SLIDE_MS = 3800;
+let introIdx = 0, introTimer = null;
+
+(function initIntro() {
+  const dots = document.getElementById('intro-dots');
+  for (let i = 0; i < SLIDE_COUNT; i++) {
+    const d = document.createElement('div');
+    d.className = 'intro-dot' + (i === 0 ? ' on' : '');
+    d.id = 'idot' + i;
+    dots.appendChild(d);
+  }
+  introTimer = setTimeout(nextSlide, SLIDE_MS);
+})();
+
+function nextSlide() {
+  if (introIdx < SLIDE_COUNT - 1) {
+    setSlide(introIdx + 1);
+    introTimer = setTimeout(nextSlide, SLIDE_MS);
+  } else {
+    introTimer = setTimeout(skipIntro, 2200);
+  }
+}
+
+function setSlide(n) {
+  document.querySelectorAll('.intro-slide').forEach((s, i) => s.classList.toggle('active', i === n));
+  document.querySelectorAll('.intro-dot').forEach((d, i) => d.classList.toggle('on', i === n));
+  introIdx = n;
+}
+
+function skipIntro() {
+  clearTimeout(introTimer);
+  const el = document.getElementById('intro-screen');
+  el.style.transition = 'opacity 0.7s';
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.style.display = 'none';
+    document.getElementById('title-screen').style.display = 'flex';
+  }, 700);
+}
+
+// ══════════════════════════════════════════════
+// GAME STATE
+// ══════════════════════════════════════════════
+let state = {
+  heroName:'', heroClass:'', heroIcon:'',
+  level:1, hp:100, maxHp:100, mp:60, maxMp:60, xp:0, xpNext:100,
+  atk:10, def:8, mag:5,
+  kingdom:'none',
+  inventory:[], visitedKingdoms:[], history:[],
+  inCombat:false, currentEnemy:null,
+  bestiary:{}, totalKills:0,
+  quests:[],
+};
+
+const classStats = {
+  'Warrior':      {hp:140,mp:40, atk:18,def:14,mag:4},
+  'Mage':         {hp:80, mp:100,atk:8, def:6, mag:20},
+  'Rogue':        {hp:100,mp:60, atk:14,def:10,mag:7},
+  'Witch Hunter': {hp:110,mp:70, atk:13,def:11,mag:9},
+  'Necromancer':  {hp:90, mp:90, atk:9, def:7, mag:18},
+  'Sea Warden':   {hp:120,mp:80, atk:12,def:13,mag:10},
+};
+
+let selectedClass = null;
+
+function selectClass(el, cls, icon) {
+  snd.click();
+  document.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedClass = {cls, icon};
+}
+
+// ══════════════════════════════════════════════
+// API KEY
+// ══════════════════════════════════════════════
+const API_KEY_STORAGE = 'celinaquest_gemini_key';
+function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+
+function beginOrApiSetup() {
+  snd.click(); resumeAudio();
+  if (!getApiKey()) { openApiSetup(true); return; }
+  showCharScreen();
+}
+
+function openApiSetup(fromTitle = false) {
+  document.getElementById('api-key-input').value = getApiKey();
+  const s = document.getElementById('api-setup');
+  s.style.display = 'flex'; s._fromTitle = fromTitle;
+}
+
+function saveApiKey() {
+  snd.click();
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key || !key.startsWith('AIza')) {
+    alert('That doesn\'t look like a valid Gemini API key (should start with AIza). Get a free key at aistudio.google.com!');
+    return;
+  }
+  localStorage.setItem(API_KEY_STORAGE, key);
+  closeApiSetup();
+  if (document.getElementById('api-setup')._fromTitle) showCharScreen();
+}
+
+function closeApiSetup() { snd.click(); document.getElementById('api-setup').style.display = 'none'; }
+
+function showCharScreen() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('char-screen').style.display = 'flex';
+}
+
+function startGame() {
+  snd.click();
+  const name = document.getElementById('hero-name').value.trim() || 'Hero';
+  if (!selectedClass) { alert('Choose a class first!'); return; }
+  state.heroName = name; state.heroClass = selectedClass.cls; state.heroIcon = selectedClass.icon;
+  const cs = classStats[selectedClass.cls];
+  state.hp = state.maxHp = cs.hp; state.mp = state.maxMp = cs.mp;
+  state.atk = cs.atk; state.def = cs.def; state.mag = cs.mag;
+
+  document.getElementById('char-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  document.getElementById('settings-btn').style.display = 'block';
+  updateHUD();
+  snd.kingdom('none');
+
+  addMsg(`✦ Welcome, ${state.heroIcon} ${state.heroName} the ${state.heroClass}! ✦`, 'msg-system');
+  addMsg(`Five realms await your conquest. The Sky Kingdom floats above the clouds. The Sea Kingdom hides treacherous depths. The Underworld seethes with dark magic. The Ancient Ruins conceal forgotten secrets. And beyond them all, the Celestial Peak awaits those worthy enough to reach it.`, 'msg-narrate');
+  addMsg(`Each realm holds unique weapons, items, and dangers. Explore all five to unlock the Final Throne.`, 'msg-narrate');
+  addMsg(`You stand at the Crossroads of Realms. Where will you venture first?`, 'msg-narrate');
+
+  state.history.push({role:'assistant', content:`The player is ${state.heroName}, a Level ${state.level} ${state.heroClass}. They stand at the Crossroads. Five realms: Sky Kingdom (dragons, wind puzzles; Mage advantage), Sea Kingdom (sea witches, merfolk, mazes; Rogue/Sea Warden advantage), Underworld (demons, dark witches; Necromancer/Witch Hunter advantage), Ancient Ruins (puzzle golems, mummies, mechanical traps; no class advantage), Celestial Peak (unlocked after visiting sky+sea+under — divine enemies, final boss). HP:${state.hp}/${state.maxHp}, MP:${state.mp}/${state.maxMp}, ATK:${state.atk}, DEF:${state.def}, MAG:${state.mag}. Inventory: empty.`});
+}
+
+// ══════════════════════════════════════════════
+// CELESTIAL PEAK
+// ══════════════════════════════════════════════
+function checkCelestialUnlock() {
+  const needed = ['sky','sea','under'];
+  const ok = needed.every(k => state.visitedKingdoms.includes(k));
+  const el = document.getElementById('map-celestial');
+  if (ok) {
+    el.classList.add('unlocked');
+    document.getElementById('celestial-status').textContent = 'Awaiting Hero';
+  }
+  return ok;
+}
+
+function travelCelestial() {
+  snd.click();
+  if (!checkCelestialUnlock()) {
+    addMsg('✦ The Celestial Peak remains shrouded in divine mist. You must first explore the Sky Kingdom, Sea Kingdom, and Underworld to earn passage.', 'msg-system');
+    return;
+  }
+  sendQuick('travel to the Celestial Peak');
+}
+
+// ══════════════════════════════════════════════
+// HUD / INVENTORY / BESTIARY / QUESTS
+// ══════════════════════════════════════════════
+function updateHUD() {
+  document.getElementById('hud-name').textContent = `${state.heroIcon} ${state.heroName} | Lvl ${state.level}`;
+  document.getElementById('hp-bar').style.width  = (state.hp/state.maxHp*100)+'%';
+  document.getElementById('hp-text').textContent = `${state.hp}/${state.maxHp}`;
+  document.getElementById('mp-bar').style.width  = (state.mp/state.maxMp*100)+'%';
+  document.getElementById('mp-text').textContent = `${state.mp}/${state.maxMp}`;
+  document.getElementById('xp-bar').style.width  = (state.xp/state.xpNext*100)+'%';
+  document.getElementById('xp-text').textContent = `${state.xp}/${state.xpNext}`;
+  document.getElementById('s-class').textContent   = state.heroClass;
+  document.getElementById('s-level').textContent   = state.level;
+  document.getElementById('s-atk').textContent     = state.atk;
+  document.getElementById('s-def').textContent     = state.def;
+  document.getElementById('s-mag').textContent     = state.mag;
+  document.getElementById('s-kills').textContent   = state.totalKills;
+  document.getElementById('s-kingdom').textContent = state.kingdom === 'none' ? 'Crossroads' : state.kingdom;
+  const kEl = document.getElementById('hud-kingdom');
+  const km = {sky:'☁ SKY',sea:'🌊 SEA',under:'💀 UNDERWORLD',ruins:'🏛 RUINS',celestial:'✨ CELESTIAL',none:'⚔ REALM'};
+  kEl.textContent = km[state.kingdom] || '⚔ REALM';
+  kEl.className = 'hud-kingdom ' + (state.kingdom === 'none' ? 'start' : state.kingdom);
+}
+
+function updateInventory() {
+  const el = document.getElementById('inv-list');
+  el.innerHTML = state.inventory.length === 0
+    ? '<li style="color:#3a2d6a">Nothing yet</li>'
+    : state.inventory.map(i => `<li>${i}</li>`).join('');
+}
+
+function updateBestiary() {
+  const el = document.getElementById('bestiary-list');
+  const entries = Object.entries(state.bestiary);
+  if (!entries.length) {
+    el.innerHTML = '<li><span class="empty-note">No enemies slain yet...</span></li>';
+    return;
+  }
+  el.innerHTML = entries
+    .sort((a,b) => b[1]-a[1])
+    .map(([name,count]) => `<li><span class="beast-name">☠ ${name}</span><span class="beast-count">×${count}</span></li>`)
+    .join('');
+}
+
+function recordKill(enemy) {
+  if (!enemy) return;
+  const n = enemy.trim();
+  state.bestiary[n] = (state.bestiary[n] || 0) + 1;
+  state.totalKills++;
+  updateBestiary();
+}
+
+function updateQuestLog() {
+  const el = document.getElementById('quest-list');
+  const cnt = document.getElementById('quest-count');
+  if (!state.quests.length) {
+    el.innerHTML = '<li><span class="empty-note">No quests yet — explore the world!</span></li>';
+    cnt.textContent = '(0 active)';
+    return;
+  }
+  const active = state.quests.filter(q => !q.done).length;
+  cnt.textContent = `(${active} active)`;
+  el.innerHTML = state.quests.map(q =>
+    `<li class="${q.done?'done':''}"><span>${q.done?'✅':'📌'}</span> ${q.name}</li>`
+  ).join('');
+}
+
+function addQuest(name) {
+  if (state.quests.find(q => q.name === name)) return;
+  state.quests.push({name, done:false});
+  snd.questNew();
+  addMsg(`📜 New Quest: <strong>${name}</strong>`, 'msg-quest');
+  updateQuestLog();
+}
+
+function completeQuest(name) {
+  const q = state.quests.find(q => q.name.toLowerCase().includes(name.toLowerCase()));
+  if (q && !q.done) {
+    q.done = true;
+    snd.questDone();
+    addMsg(`✅ Quest Complete: <strong>${q.name}</strong>!`, 'msg-quest');
+    updateQuestLog();
+  }
+}
+
+// ══════════════════════════════════════════════
+// OUTPUT
+// ══════════════════════════════════════════════
+function addMsg(text, cls='msg-narrate') {
+  const out = document.getElementById('output');
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+// ══════════════════════════════════════════════
+// COMMANDS
+// ══════════════════════════════════════════════
+function sendQuick(cmd) { snd.click(); document.getElementById('cmd-input').value = cmd; sendCommand(); }
+
+async function sendCommand() {
+  const input = document.getElementById('cmd-input');
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  input.value = '';
+  resumeAudio();
+
+  addMsg(`> ${cmd}`, 'msg-player');
+
+  const lower = cmd.toLowerCase();
+  if (lower.includes('check inventory') || lower === 'inventory' || lower === 'i') {
+    addMsg(state.inventory.length ? 'You carry: ' + state.inventory.join(', ') + '.' : 'Your satchel is empty. Seek loot!', 'msg-narrate');
+    return;
+  }
+
+  const celestialOk = checkCelestialUnlock();
+
+  const systemPrompt = `
+GAME STATE:
+- Hero: ${state.heroName}, ${state.heroClass} (Lvl ${state.level})
+- HP: ${state.hp}/${state.maxHp} | MP: ${state.mp}/${state.maxMp} | XP: ${state.xp}/${state.xpNext}
+- ATK: ${state.atk} | DEF: ${state.def} | MAG: ${state.mag}
+- Current Realm: ${state.kingdom}
+- Inventory: ${state.inventory.join(', ') || 'empty satchel'}
+- Visited Realms: ${state.visitedKingdoms.join(', ') || 'none'}
+- Total Kills: ${state.totalKills} | Bestiary: ${Object.keys(state.bestiary).join(', ') || 'none'}
+- Active Quests: ${state.quests.filter(q=>!q.done).map(q=>q.name).join(', ') || 'none'}
+- In combat: ${state.inCombat} | Enemy: ${state.currentEnemy || 'none'}
+- Celestial Peak unlocked: ${celestialOk}
+
+REALM RULES:
+Sky Kingdom: dragons, sky witches, wind puzzles. Mage +3 MAG. Puzzles: riddles about clouds/stars/wind. Loot: Storm Blade, Sky Amulet, Dragon Scale Armor, Wind Staff.
+Sea Kingdom: sea witches, merfolk, sea serpents, underwater mazes. Rogue +2 ATK, Sea Warden +3 DEF. Puzzles: symbol/pattern matching. Loot: Trident of Tides, Pearl of Healing, Coral Shield, Siren's Harp.
+Underworld Kingdom: demons, dark witches, wraiths. Necromancer +3 MAG, Witch Hunter +3 ATK vs witches. Puzzles: curse-breaking riddles. Loot: Soul Sword, Shadow Cloak, Infernal Wand, Bone Crown.
+Ancient Ruins: treasure golems, cursed mummies, ruin guardians, mechanical traps. No class advantage — pure puzzle skill rewarded. Puzzles: ancient number sequences, logic traps, symbol codes. Loot: Rune Tablet, Golem Core, Archaeologist's Map, Timeworn Blade.
+Celestial Peak (only if unlocked=true): divine eagles, celestial knights, Throne Guardian (final boss). Holy damage only; Necromancer at disadvantage. Loot: Celestial Armor, Divine Scepter, Crown of Realms. Refuse entry if unlocked=false.
+
+SIDE QUESTS (use [QUEST: name] to start, [QUEST_DONE: name] to complete — naturally during exploration):
+- "The Lost Merchant" — stolen goods scattered across realms; find all 3.
+- "The Cursed Amulet" — an amulet must be cleansed in the Underworld.
+- "The Sea Witch's Bargain" — free or betray a captured sea witch; consequences follow.
+- "The Dragon Egg" — return a stolen egg to the mother dragon in the Sky Kingdom.
+- "Golem's Memory" — retrieve a memory core for a broken ruin golem.
+Invent additional contextual quests that fit the current scene.
+
+RESPONSE RULES (follow exactly):
+1. Narrate dramatically in 2–5 sentences. Age-appropriate, immersive, creative.
+2. First visit to a realm: vivid description. Note class advantages/disadvantages.
+3. Combat: describe outcomes with enemy HP in parentheses. Enemies have tactics.
+4. Puzzles: ask a riddle or puzzle; wait for the player's answer before rewarding.
+5. Loot: [LOOT: item name]
+6. HP changes: [HP: new_value]
+7. MP changes: [MP: new_value]
+8. XP gained: [XP: amount]
+9. Combat start: [COMBAT: enemy_name]
+10. Combat win: [COMBAT_END]
+11. Realm entry: [KINGDOM: sky|sea|under|ruins|celestial]
+12. New quest: [QUEST: quest name]
+13. Quest completed: [QUEST_DONE: quest name]
+14. Never break immersion. Stay in the world.
+`;
+
+  const messages = [...state.history.slice(-14), {role:'user', content:cmd}];
+  document.getElementById('thinking').style.display = 'block';
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    document.getElementById('thinking').style.display = 'none';
+    addMsg('✦ A Gemini API key is needed! Click ⚙ API Key to enter your free key from aistudio.google.com.', 'msg-system');
+    return;
+  }
+
+  try {
+    // Convert history to Gemini format (role: "model" instead of "assistant")
+    const geminiHistory = state.history.slice(-14).map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+    geminiHistory.push({ role: 'user', parts: [{ text: cmd }] });
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: geminiHistory,
+          generationConfig: { maxOutputTokens: 1000 }
+        })
+      }
+    );
+    document.getElementById('thinking').style.display = 'none';
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      if (res.status === 400 || res.status === 403)
+        addMsg('✦ The magic key was refused! Check ⚙ API Key — get a free one at aistudio.google.com.', 'msg-system');
+      else if (res.status === 429)
+        addMsg('✦ The realm needs a moment to rest... (rate limit). Try again shortly!', 'msg-system');
+      else
+        addMsg(`✦ A dark force disrupts the realm... (Error ${res.status}: ${err.error?.message||'unknown'})`, 'msg-system');
+      return;
+    }
+
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || 'The realm falls silent...';
+    let display = raw;
+
+    // Parse all tags
+    const lootMatch     = raw.match(/\[LOOT:\s*([^\]]+)\]/);
+    const hpMatch       = raw.match(/\[HP:\s*(\d+)\]/);
+    const mpMatch       = raw.match(/\[MP:\s*(\d+)\]/);
+    const xpMatch       = raw.match(/\[XP:\s*(\d+)\]/);
+    const combatMatch   = raw.match(/\[COMBAT:\s*([^\]]+)\]/);
+    const combatEnd     = raw.includes('[COMBAT_END]');
+    const kingdomMatch  = raw.match(/\[KINGDOM:\s*(sky|sea|under|ruins|celestial)\]/);
+    const questMatch    = raw.match(/\[QUEST:\s*([^\]]+)\]/);
+    const questDoneMatch= raw.match(/\[QUEST_DONE:\s*([^\]]+)\]/);
+
+    display = display.replace(/\[(LOOT|HP|MP|XP|COMBAT_END|COMBAT|KINGDOM|QUEST_DONE|QUEST):[^\]]*\]/g,'').trim();
+
+    // Apply effects
+    if (kingdomMatch) {
+      state.kingdom = kingdomMatch[1];
+      if (!state.visitedKingdoms.includes(state.kingdom)) state.visitedKingdoms.push(state.kingdom);
+      const statusMap = {sky:'sky-status',sea:'sea-status',under:'under-status',ruins:'ruins-status',celestial:'celestial-status'};
+      const sid = statusMap[state.kingdom];
+      if (sid) document.getElementById(sid).textContent = 'Exploring';
+      snd.kingdom(state.kingdom);
+      checkCelestialUnlock();
+    }
+
+    const prevHp = state.hp;
+    if (hpMatch) {
+      state.hp = Math.max(0, Math.min(state.maxHp, parseInt(hpMatch[1])));
+      if (state.hp < prevHp) snd.hit();
+    }
+    if (mpMatch) state.mp = Math.max(0, Math.min(state.maxMp, parseInt(mpMatch[1])));
+
+    if (xpMatch) {
+      state.xp += parseInt(xpMatch[1]);
+      if (state.xp >= state.xpNext) {
+        state.xp -= state.xpNext;
+        state.level++;
+        state.xpNext = Math.floor(state.xpNext * 1.4);
+        state.maxHp += 15; state.hp = state.maxHp;
+        state.atk += 2; state.def += 1; state.mag += 1;
+        snd.levelup();
+        addMsg(`⚡ LEVEL UP! You are now Level ${state.level}! HP fully restored. Stats increased!`, 'msg-system');
+      }
+    }
+
+    if (lootMatch) {
+      const item = lootMatch[1].trim();
+      state.inventory.push(item);
+      updateInventory();
+      snd.loot();
+      addMsg(`✦ You obtained: <strong>${item}</strong>!`, 'msg-loot');
+    }
+
+    if (combatMatch && !state.inCombat) {
+      state.inCombat = true;
+      state.currentEnemy = combatMatch[1].trim();
+    }
+    if (combatEnd) {
+      recordKill(state.currentEnemy);
+      state.inCombat = false;
+      state.currentEnemy = null;
+    }
+
+    if (questMatch) addQuest(questMatch[1].trim());
+    if (questDoneMatch) completeQuest(questDoneMatch[1].trim());
+
+    if (state.hp <= 0) {
+      snd.death();
+      addMsg('☠ You have fallen... Your quest ends here. Refresh to try again!', 'msg-combat');
+      document.getElementById('cmd-input').disabled = true;
+      document.getElementById('send-btn').disabled = true;
+      return;
+    }
+
+    const kMsgClass = {sky:'msg-kingdom-sky',sea:'msg-kingdom-sea',under:'msg-kingdom-under',ruins:'msg-kingdom-ruins',celestial:'msg-kingdom-celestial'};
+    let msgClass = kMsgClass[state.kingdom] || 'msg-narrate';
+    if (state.inCombat) msgClass = 'msg-combat';
+
+    addMsg(display, msgClass);
+    updateHUD();
+
+    state.history.push({role:'user', content:cmd});
+    state.history.push({role:'assistant', content:raw});
+    if (state.history.length > 26) state.history = state.history.slice(-26);
+
+  } catch(e) {
+    document.getElementById('thinking').style.display = 'none';
+    addMsg('✦ Could not reach the realm... Check your internet connection!', 'msg-system');
+    console.error('Celina Quest API error:', e);
+  }
+}
+
+document.getElementById('cmd-input').addEventListener('keydown', e => { if (e.key==='Enter') sendCommand(); });
+
+// ══════════════════════════════════════════════
+// SAVE / LOAD
+// ══════════════════════════════════════════════
+const SAVE_PREFIX = 'celinaquest_save_';
+const saveKey = s => SAVE_PREFIX + s;
+
+function saveGame(slot) {
+  snd.click();
+  const ex = localStorage.getItem(saveKey(slot));
+  if (ex) showModal('⚠ Overwrite Save?', `Slot ${slot} already has a save. Overwrite?`, () => { doSave(slot); closeModal(); });
+  else doSave(slot);
+}
+
+function doSave(slot) {
+  localStorage.setItem(saveKey(slot), JSON.stringify({
+    ...state,
+    savedAt: new Date().toLocaleString(),
+    outputLog: Array.from(document.querySelectorAll('#output .msg')).slice(-20)
+      .map(el => ({html:el.innerHTML, cls:el.className.replace('msg ','')}))
+  }));
+  refreshSlotUI();
+  addMsg(`✦ Game saved to Slot ${slot}! Your quest is preserved.`, 'msg-system');
+}
+
+function loadGame(slot) {
+  snd.click();
+  if (!localStorage.getItem(saveKey(slot))) { addMsg(`Slot ${slot} has no save data.`, 'msg-system'); return; }
+  showModal('📜 Load Save?', `Load Slot ${slot}? Current progress will be replaced.`, () => { doLoad(slot); closeModal(); });
+}
+
+function doLoad(slot) {
+  const raw = localStorage.getItem(saveKey(slot));
+  if (!raw) return;
+  const {outputLog, savedAt, ...gs} = JSON.parse(raw);
+  Object.assign(state, gs);
+  if (!state.bestiary)  state.bestiary  = {};
+  if (!state.totalKills) state.totalKills = 0;
+  if (!state.quests)    state.quests    = [];
+
+  const out = document.getElementById('output');
+  out.innerHTML = '';
+  (outputLog||[]).forEach(e => {
+    const d = document.createElement('div');
+    d.className = 'msg ' + e.cls; d.innerHTML = e.html; out.appendChild(d);
+  });
+  out.scrollTop = out.scrollHeight;
+
+  state.visitedKingdoms.forEach(k => {
+    const el = document.getElementById(k+'-status');
+    if (el) el.textContent = 'Exploring';
+  });
+
+  ['title-screen','char-screen','api-setup'].forEach(id => document.getElementById(id).style.display='none');
+  document.getElementById('game-screen').style.display = 'flex';
+  document.getElementById('settings-btn').style.display = 'block';
+  document.getElementById('cmd-input').disabled = false;
+  document.getElementById('send-btn').disabled  = false;
+
+  updateHUD(); updateInventory(); updateBestiary(); updateQuestLog();
+  checkCelestialUnlock(); refreshSlotUI();
+  addMsg(`✦ Save loaded! Welcome back, ${state.heroIcon} ${state.heroName}. (Saved: ${savedAt})`, 'msg-system');
+}
+
+function deleteGame(slot) {
+  snd.click();
+  if (!localStorage.getItem(saveKey(slot))) { addMsg(`Slot ${slot} is already empty.`, 'msg-system'); return; }
+  showModal('🗑 Delete Save?', `Permanently delete Slot ${slot}? Cannot be undone.`, () => {
+    localStorage.removeItem(saveKey(slot));
+    refreshSlotUI();
+    addMsg(`Slot ${slot} deleted.`, 'msg-system');
+    closeModal();
+  });
+}
+
+function refreshSlotUI() {
+  for (let i = 1; i <= 3; i++) {
+    const raw = localStorage.getItem(saveKey(i));
+    const nameEl   = document.getElementById(`slot-${i}-name`);
+    const detailEl = document.getElementById(`slot-${i}-detail`);
+    const slotEl   = document.getElementById(`slot-${i}`);
+    if (raw) {
+      const d = JSON.parse(raw);
+      nameEl.textContent   = `${d.heroIcon} ${d.heroName} — Lvl ${d.level}`;
+      detailEl.textContent = `${d.heroClass} | ${d.kingdom==='none'?'Crossroads':d.kingdom} | ${d.savedAt}`;
+      slotEl.classList.add('has-data');
+    } else {
+      nameEl.textContent   = `Slot ${i} — Empty`;
+      detailEl.textContent = 'No save data';
+      slotEl.classList.remove('has-data');
+    }
+  }
+}
+
+function showModal(title, msg, onOk) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent   = msg;
+  document.getElementById('modal-ok').onclick = onOk;
+  document.getElementById('save-modal').style.display = 'flex';
+}
+function closeModal() { snd.click(); document.getElementById('save-modal').style.display = 'none'; }
+
+// ══════════════════════════════════════════════
+// STARTUP
+// ══════════════════════════════════════════════
+refreshSlotUI();
+
+(function checkSavesOnLoad() {
+  let best = null, bestTime = 0;
+  for (let i = 1; i <= 3; i++) {
+    const raw = localStorage.getItem(saveKey(i));
+    if (raw) {
+      try {
+        const d = JSON.parse(raw);
+        const t = new Date(d.savedAt).getTime() || i;
+        if (t > bestTime) { bestTime = t; best = i; }
+      } catch(e) { best = best || i; }
+    }
+  }
+  if (best !== null && !document.getElementById('load-saves-btn')) {
+    const btn = document.createElement('button');
+    btn.id = 'load-saves-btn'; btn.className = 'start-btn';
+    btn.style.cssText = 'margin-top:0;background:linear-gradient(135deg,#1a3a5c,#3070e8,#1a3a5c);color:#fff';
+    btn.textContent = '📜 CONTINUE QUEST';
+    const slot = best;
+    btn.onclick = () => {
+      snd.click(); resumeAudio();
+      if (!getApiKey()) { openApiSetup(false); return; }
+      doLoad(slot);
+    };
+    document.getElementById('title-screen').appendChild(btn);
+  }
+})();
+</script>
+</body>
+</html>

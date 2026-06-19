@@ -357,6 +357,49 @@
   .sb.del-it  { border-color: #3a1010; color: #e83030; background: #1a0808; }
   .sb.del-it:hover { background: #3a1010; }
 
+  /* PARENT SETUP MODAL */
+  #parent-modal {
+    display: none; position: fixed; inset: 0;
+    background: #000a; z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  .parent-box {
+    background: #12092a; border: 1px solid var(--gold);
+    border-radius: 12px; padding: 32px 36px;
+    max-width: 400px; width: 90%; text-align: center;
+    box-shadow: 0 0 50px #f5c84233;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .parent-box h2 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.25rem; letter-spacing: 2px; }
+  .parent-box p  { color: #c9b88a; font-size: 0.88rem; line-height: 1.6; }
+  .parent-box .note { color: #555; font-size: 0.75rem; line-height: 1.55; }
+  .parent-box input {
+    background: #1a1230; border: 1px solid #3a2d6a;
+    color: var(--parchment); padding: 11px 16px;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
+    border-radius: 4px; width: 100%; text-align: center;
+  }
+  .parent-box input:focus { outline: none; border-color: var(--gold); }
+  .p-btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .p-btn-row button {
+    padding: 10px 22px; border-radius: 4px;
+    font-family: 'Cinzel', serif; font-size: 0.85rem;
+    cursor: pointer; border: 1px solid; transition: all 0.15s;
+  }
+  .p-primary { background: #5a3a00; border-color: var(--gold); color: var(--gold); }
+  .p-primary:hover { background: #8b6914; }
+  .p-secondary { background: #1a1230; border-color: #3a2d6a; color: #a89878; }
+  .p-secondary:hover { background: #2a2040; }
+  .p-danger { background: #1a0808; border-color: #3a1010; color: #e83030; font-size: 0.75rem; }
+  .p-danger:hover { background: #3a1010; }
+  #parent-btn {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: none; border: none; color: #3a3050;
+    font-family: 'Cinzel', serif; font-size: 0.7rem; letter-spacing: 1px;
+    cursor: pointer; padding: 6px 12px; transition: color 0.2s;
+  }
+  #parent-btn:hover { color: #a89878; }
+
   /* MODAL */
   #save-modal {
     display: none; position: fixed; inset: 0;
@@ -430,6 +473,7 @@
     <span class="badge celestial">✨ CELESTIAL PEAK</span>
   </div>
   <button class="start-btn" onclick="beginOrApiSetup()">BEGIN YOUR QUEST</button>
+  <button id="parent-btn" onclick="openParentSetup()">🔐 Parent Setup</button>
 </div>
 
 <button id="settings-btn" onclick="openApiSetup()" style="display:none">⚙ API Key</button>
@@ -650,6 +694,46 @@
   </div>
 </div>
 
+<!-- PARENT SETUP MODAL -->
+<div id="parent-modal">
+  <div class="parent-box">
+    <!-- Step 1: password entry -->
+    <div id="p-step-pw">
+      <h2 id="p-pw-title">🔐 Parent Access</h2>
+      <p id="p-pw-desc">Enter the parent password to manage the API key.</p>
+      <input type="password" id="p-pw-input" placeholder="Parent password..." maxlength="40">
+      <div class="p-btn-row">
+        <button class="p-primary" onclick="submitParentPw()">UNLOCK</button>
+        <button class="p-secondary" onclick="closeParentModal()">Cancel</button>
+      </div>
+      <p class="note" id="p-pw-error" style="color:#e83030;display:none">Incorrect password. Try again.</p>
+    </div>
+    <!-- Step 2: API key + options -->
+    <div id="p-step-key" style="display:none">
+      <h2>⚙ Parent Settings</h2>
+      <p>Enter your free Gemini API key. Get one at <strong style="color:var(--gold)">aistudio.google.com</strong> → Get API Key.</p>
+      <input type="password" id="p-key-input" placeholder="AIza...">
+      <div class="p-btn-row">
+        <button class="p-primary" onclick="saveParentKey()">SAVE KEY</button>
+        <button class="p-secondary" onclick="closeParentModal()">Close</button>
+      </div>
+      <p class="note">Key is stored only in this browser. Never shared with anyone except Google's servers.</p>
+      <button class="p-danger" onclick="showChangePw()">Change Password</button>
+    </div>
+    <!-- Step 3: change password -->
+    <div id="p-step-changepw" style="display:none">
+      <h2>🔑 Change Password</h2>
+      <input type="password" id="p-newpw1" placeholder="New password...">
+      <input type="password" id="p-newpw2" placeholder="Confirm new password...">
+      <div class="p-btn-row">
+        <button class="p-primary" onclick="doChangePw()">SAVE</button>
+        <button class="p-secondary" onclick="showKeyStep()">Back</button>
+      </div>
+      <p class="note" id="p-changepw-error" style="color:#e83030;display:none"></p>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════
 // SOUND SYSTEM (Web Audio API — no libraries)
@@ -776,33 +860,103 @@ function selectClass(el, cls, icon) {
 // API KEY
 // ══════════════════════════════════════════════
 const API_KEY_STORAGE = 'celinaquest_gemini_key';
+const PW_STORAGE      = 'celinaquest_parent_pw';
 function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+
+function hashPw(pw) {
+  let h = 5381;
+  for (let i = 0; i < pw.length; i++) h = (Math.imul(31, h) + pw.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
 
 function beginOrApiSetup() {
   snd.click(); resumeAudio();
-  if (!getApiKey()) { openApiSetup(true); return; }
+  if (!getApiKey()) { openParentSetup(); return; }
   showCharScreen();
 }
 
-function openApiSetup(fromTitle = false) {
-  document.getElementById('api-key-input').value = getApiKey();
-  const s = document.getElementById('api-setup');
-  s.style.display = 'flex'; s._fromTitle = fromTitle;
+// ── Parent setup modal ──
+function openParentSetup() {
+  snd.click();
+  const hasPw = !!localStorage.getItem(PW_STORAGE);
+  document.getElementById('p-pw-title').textContent = hasPw ? '🔐 Parent Access' : '🔐 Create Parent Password';
+  document.getElementById('p-pw-desc').textContent  = hasPw
+    ? 'Enter the parent password to manage the API key.'
+    : 'No password set yet. Choose a password only a parent would know, then enter your free Gemini API key.';
+  document.getElementById('p-pw-input').value = '';
+  document.getElementById('p-pw-error').style.display = 'none';
+  setParentStep('p-step-pw');
+  document.getElementById('parent-modal').style.display = 'flex';
 }
 
-function saveApiKey() {
+function closeParentModal() {
   snd.click();
-  const key = document.getElementById('api-key-input').value.trim();
+  document.getElementById('parent-modal').style.display = 'none';
+}
+
+function setParentStep(id) {
+  ['p-step-pw','p-step-key','p-step-changepw'].forEach(s =>
+    document.getElementById(s).style.display = s === id ? 'block' : 'none'
+  );
+}
+function showChangePw() {
+  document.getElementById('p-newpw1').value = '';
+  document.getElementById('p-newpw2').value = '';
+  document.getElementById('p-changepw-error').style.display = 'none';
+  setParentStep('p-step-changepw');
+}
+function showKeyStep() { setParentStep('p-step-key'); }
+
+function submitParentPw() {
+  snd.click();
+  const pw = document.getElementById('p-pw-input').value;
+  const stored = localStorage.getItem(PW_STORAGE);
+  if (!stored) {
+    if (!pw || pw.length < 3) { showPwError('Password must be at least 3 characters.'); return; }
+    localStorage.setItem(PW_STORAGE, hashPw(pw));
+    document.getElementById('p-key-input').value = getApiKey();
+    setParentStep('p-step-key');
+  } else {
+    if (hashPw(pw) !== stored) { showPwError('Incorrect password. Try again.'); return; }
+    document.getElementById('p-key-input').value = getApiKey();
+    setParentStep('p-step-key');
+  }
+}
+
+function showPwError(msg) {
+  const el = document.getElementById('p-pw-error');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('p-pw-input').value = '';
+  document.getElementById('p-pw-input').focus();
+}
+
+function saveParentKey() {
+  snd.click();
+  const key = document.getElementById('p-key-input').value.trim();
   if (!key || !key.startsWith('AIza')) {
-    alert('That doesn\'t look like a valid Gemini API key (should start with AIza). Get a free key at aistudio.google.com!');
+    alert('That doesn\'t look like a valid Gemini key (should start with AIza). Get a free one at aistudio.google.com!');
     return;
   }
   localStorage.setItem(API_KEY_STORAGE, key);
-  closeApiSetup();
-  if (document.getElementById('api-setup')._fromTitle) showCharScreen();
+  closeParentModal();
+  if (document.getElementById('title-screen').style.display !== 'none') showCharScreen();
 }
 
-function closeApiSetup() { snd.click(); document.getElementById('api-setup').style.display = 'none'; }
+function doChangePw() {
+  snd.click();
+  const pw1 = document.getElementById('p-newpw1').value;
+  const pw2 = document.getElementById('p-newpw2').value;
+  const err = document.getElementById('p-changepw-error');
+  if (!pw1 || pw1.length < 3) { err.textContent = 'At least 3 characters required.'; err.style.display = 'block'; return; }
+  if (pw1 !== pw2) { err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return; }
+  localStorage.setItem(PW_STORAGE, hashPw(pw1));
+  showKeyStep();
+}
+
+// Legacy stubs (in-game ⚙ button routes through parent modal now)
+function openApiSetup() { openParentSetup(); }
+function saveApiKey() {}
+function closeApiSetup() {}
 
 function showCharScreen() {
   document.getElementById('title-screen').style.display = 'none';
@@ -1158,6 +1312,8 @@ RESPONSE RULES (follow exactly):
 }
 
 document.getElementById('cmd-input').addEventListener('keydown', e => { if (e.key==='Enter') sendCommand(); });
+document.getElementById('p-pw-input').addEventListener('keydown', e => { if (e.key==='Enter') submitParentPw(); });
+document.getElementById('p-key-input').addEventListener('keydown', e => { if (e.key==='Enter') saveParentKey(); });
 
 // ══════════════════════════════════════════════
 // SAVE / LOAD

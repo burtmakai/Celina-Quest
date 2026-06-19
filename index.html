@@ -401,6 +401,24 @@
   .modal-ok:hover { background: #8b6914; }
   .modal-cancel { background: #1a1230; border-color: #3a2d6a; color: #a89878; }
   .modal-cancel:hover { background: #2a2040; }
+
+  /* ── SCENE PANEL ── */
+  #scene-panel {
+    position: relative; margin-bottom: 8px;
+    border-radius: 8px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.07);
+    transition: opacity 0.6s ease;
+    flex-shrink: 0;
+  }
+  #scene-panel svg { width: 100%; display: block; }
+  #scene-dismiss {
+    position: absolute; top: 6px; right: 8px;
+    background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.45); font-size: 0.6rem; padding: 3px 8px;
+    border-radius: 3px; cursor: pointer; font-family: 'Cinzel', serif;
+    letter-spacing: 1px; transition: color 0.2s;
+  }
+  #scene-dismiss:hover { color: rgba(255,255,255,0.8); }
 </style>
 </head>
 <body>
@@ -528,6 +546,11 @@
       </div>
     </div>
     <div class="hud-kingdom start" id="hud-kingdom">⚔ REALM</div>
+  </div>
+
+  <div id="scene-panel" style="display:none">
+    <div id="scene-img"></div>
+    <button id="scene-dismiss" onclick="document.getElementById('scene-panel').style.display='none'">✕ HIDE</button>
   </div>
 
   <div id="output"></div>
@@ -795,6 +818,400 @@ function skipIntro() {
     el.style.display = 'none';
     document.getElementById('title-screen').style.display = 'flex';
   }, 700);
+}
+
+// ══════════════════════════════════════════════
+// SCENE & ENEMY VISUALS
+// ══════════════════════════════════════════════
+const SCENE_SVG = {
+sky: `<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="sk-bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#020810"/><stop offset="100%" stop-color="#0d2a4a"/>
+  </linearGradient>
+  <radialGradient id="sk-m" cx="72%" cy="22%" r="30%">
+    <stop offset="0%" stop-color="#b8e0f8" stop-opacity="0.5"/><stop offset="100%" stop-color="#7ec8e3" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="600" height="180" fill="url(#sk-bg)"/>
+<ellipse cx="430" cy="40" rx="100" ry="50" fill="url(#sk-m)"/>
+<circle cx="430" cy="28" r="18" fill="#c8e8ff" opacity="0.9"/>
+<circle cx="440" cy="22" r="15" fill="#061828"/>
+<circle cx="30" cy="12" r="1.5" fill="#fff" opacity="0.9"/><circle cx="80" cy="6" r="1" fill="#fff" opacity="0.7"/><circle cx="140" cy="18" r="1.5" fill="#fff" opacity="0.8"/><circle cx="200" cy="8" r="1" fill="#fff" opacity="0.6"/><circle cx="260" cy="22" r="1" fill="#fff" opacity="0.9"/><circle cx="310" cy="9" r="1.5" fill="#fff" opacity="0.7"/><circle cx="510" cy="14" r="1.5" fill="#fff" opacity="0.9"/><circle cx="560" cy="7" r="1" fill="#fff" opacity="0.7"/><circle cx="60" cy="40" r="1" fill="#fff" opacity="0.5"/>
+<ellipse cx="95" cy="78" rx="58" ry="20" fill="#1a3a5a" opacity="0.9"/><ellipse cx="80" cy="70" rx="42" ry="14" fill="#2a5070" opacity="0.8"/><ellipse cx="115" cy="68" rx="38" ry="13" fill="#2a5070" opacity="0.8"/>
+<ellipse cx="310" cy="95" rx="75" ry="25" fill="#1a3a5a" opacity="0.9"/><ellipse cx="290" cy="86" rx="55" ry="17" fill="#2a5070" opacity="0.8"/><ellipse cx="340" cy="84" rx="50" ry="16" fill="#2a5070" opacity="0.8"/>
+<ellipse cx="185" cy="150" rx="90" ry="18" fill="#0a1205" opacity="0.9"/>
+<rect x="100" y="135" width="170" height="15" fill="#182210" rx="3"/>
+<ellipse cx="185" cy="135" rx="85" ry="12" fill="#283a18"/>
+<polygon points="148,135 153,110 158,135" fill="#0c1808"/><polygon points="168,135 175,105 182,135" fill="#0c1808"/><polygon points="198,135 203,112 208,135" fill="#0c1808"/><polygon points="215,135 219,118 223,135" fill="#0c1808"/>
+<ellipse cx="130" cy="163" rx="12" ry="8" fill="#0a1005" opacity="0.7"/><ellipse cx="235" cy="165" rx="10" ry="7" fill="#0a1005" opacity="0.6"/>
+<g transform="translate(480,48) scale(0.9)">
+  <path d="M15,25 C10,8 28,-8 48,2 C68,12 62,36 42,40 C26,43 15,38 15,25Z" fill="#071528"/>
+  <path d="M32,14 C42,-2 68,-16 82,-6 C90,1 84,16 68,20 C52,23 36,22 32,14Z" fill="#071528"/>
+  <path d="M12,30 C-5,26 -20,32 -24,38 C-12,44 6,40 12,30Z" fill="#071528"/>
+  <path d="M18,36 L-4,56 L9,51 L3,70 L20,48Z" fill="#071528"/>
+  <circle cx="44" cy="14" r="5" fill="#7ec8e3" opacity="0.9"/><circle cx="44" cy="14" r="2.5" fill="#fff"/>
+  <path d="M60,22 C75,17 92,13 100,16 C92,21 77,24 67,28 C85,26 103,23 110,28 C97,34 79,34 66,34Z" fill="#f5c842" opacity="0.55"/>
+  <path d="M60,22 C73,19 88,17 96,20 C89,24 74,25 65,28Z" fill="#e07020" opacity="0.65"/>
+</g>
+<text x="300" y="174" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="#7ec8e3" opacity="0.65" letter-spacing="5">☁  SKY KINGDOM  ☁</text>
+</svg>`,
+
+sea: `<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="se-bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#001215"/><stop offset="40%" stop-color="#002a30"/><stop offset="100%" stop-color="#000a0c"/>
+  </linearGradient>
+  <radialGradient id="se-glow" cx="50%" cy="0%" r="60%">
+    <stop offset="0%" stop-color="#00e5c0" stop-opacity="0.15"/><stop offset="100%" stop-color="#00e5c0" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="600" height="180" fill="url(#se-bg)"/>
+<rect width="600" height="180" fill="url(#se-glow)"/>
+<path d="M0,0 Q150,8 300,3 Q450,-2 600,5 L600,20 Q450,12 300,17 Q150,22 0,18Z" fill="#003840" opacity="0.6"/>
+<path d="M120,0 L90,180" stroke="#00e5c0" stroke-width="1.5" opacity="0.07"/><path d="M160,0 L145,180" stroke="#00e5c0" stroke-width="2" opacity="0.05"/><path d="M280,0 L285,180" stroke="#00e5c0" stroke-width="2.5" opacity="0.06"/><path d="M380,0 L360,180" stroke="#00e5c0" stroke-width="1.5" opacity="0.06"/><path d="M440,0 L430,180" stroke="#00e5c0" stroke-width="2" opacity="0.04"/>
+<path d="M0,165 Q150,155 300,160 Q450,165 600,158 L600,180 L0,180Z" fill="#001a10"/>
+<path d="M50,165 Q45,145 50,130 Q55,115 60,130 Q65,145 60,165Z" fill="#00a070" opacity="0.6"/><path d="M60,165 Q58,150 62,138 Q66,125 70,138 Q74,150 72,165Z" fill="#00c080" opacity="0.5"/>
+<path d="M500,165 Q495,140 500,120 Q505,100 510,120 Q515,140 510,165Z" fill="#00a070" opacity="0.6"/><path d="M515,165 Q512,145 516,130 Q520,115 524,130 Q528,145 525,165Z" fill="#00c080" opacity="0.5"/>
+<path d="M140,165 Q130,145 140,130 Q152,115 148,100 Q155,115 160,130 Q158,145 165,165Z" fill="#008040" opacity="0.4"/>
+<path d="M420,165 Q410,140 420,120 Q432,100 428,80 Q435,100 442,120 Q440,140 448,165Z" fill="#008040" opacity="0.4"/>
+<circle cx="180" cy="130" r="3" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.5"/><circle cx="200" cy="95" r="2" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.4"/><circle cx="350" cy="110" r="2.5" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.5"/><circle cx="380" cy="70" r="2" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.4"/>
+<g opacity="0.85">
+  <path d="M60,120 Q120,80 180,100 Q240,120 300,90 Q360,60 420,80 Q480,100 540,70" fill="none" stroke="#003838" stroke-width="22" stroke-linecap="round"/>
+  <path d="M60,120 Q120,80 180,100 Q240,120 300,90 Q360,60 420,80 Q480,100 540,70" fill="none" stroke="#004a4a" stroke-width="16" stroke-linecap="round"/>
+  <ellipse cx="548" cy="66" rx="22" ry="14" fill="#004a4a"/>
+  <circle cx="558" cy="60" r="6" fill="#00e5c0" opacity="0.9"/><circle cx="558" cy="60" r="3" fill="#fff"/>
+  <path d="M300,90 L285,60 L320,80Z" fill="#003838"/><path d="M420,80 L405,48 L440,68Z" fill="#003838"/>
+</g>
+<text x="300" y="176" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="#00e5c0" opacity="0.65" letter-spacing="5">🌊  SEA KINGDOM  🌊</text>
+</svg>`,
+
+under: `<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="un-bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#050008"/><stop offset="60%" stop-color="#150020"/><stop offset="100%" stop-color="#2a0008"/>
+  </linearGradient>
+  <radialGradient id="un-lava" cx="50%" cy="100%" r="60%">
+    <stop offset="0%" stop-color="#c83000" stop-opacity="0.7"/><stop offset="100%" stop-color="#800010" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="600" height="180" fill="url(#un-bg)"/>
+<rect width="600" height="180" fill="url(#un-lava)"/>
+<polygon points="50,0 62,0 56,32" fill="#1a0020" opacity="0.9"/><polygon points="100,0 115,0 108,45" fill="#1a0020" opacity="0.9"/><polygon points="180,0 195,0 188,38" fill="#1a0020" opacity="0.9"/><polygon points="260,0 278,0 269,52" fill="#1a0020" opacity="0.9"/><polygon points="340,0 355,0 348,35" fill="#1a0020" opacity="0.9"/><polygon points="400,0 418,0 409,48" fill="#1a0020" opacity="0.9"/><polygon points="480,0 494,0 487,30" fill="#1a0020" opacity="0.9"/><polygon points="545,0 560,0 552,42" fill="#1a0020" opacity="0.9"/>
+<path d="M0,170 Q150,160 300,165 Q450,170 600,163 L600,180 L0,180Z" fill="#1a0008"/>
+<ellipse cx="110" cy="172" rx="25" ry="5" fill="#e83000" opacity="0.4"/><ellipse cx="330" cy="174" rx="35" ry="6" fill="#e83000" opacity="0.3"/><ellipse cx="490" cy="171" rx="22" ry="5" fill="#e83000" opacity="0.4"/>
+<path d="M80,165 Q72,145 80,128 Q88,110 82,100 Q90,112 95,128 Q100,145 90,165Z" fill="#c83000" opacity="0.7"/>
+<path d="M83,165 Q78,148 83,133 Q88,118 86,108 Q92,120 95,133 Q97,148 91,165Z" fill="#f56000" opacity="0.6"/>
+<path d="M300,165 Q290,140 298,118 Q306,96 300,82 Q310,98 316,118 Q322,140 312,165Z" fill="#c83000" opacity="0.7"/>
+<path d="M302,165 Q296,143 302,123 Q308,103 305,90 Q313,105 316,123 Q319,143 312,165Z" fill="#f56000" opacity="0.6"/>
+<path d="M490,165 Q483,145 490,126 Q497,107 492,96 Q499,109 503,126 Q508,145 500,165Z" fill="#c83000" opacity="0.7"/>
+<path d="M492,165 Q487,147 492,130 Q497,113 495,102 Q501,115 504,130 Q507,147 502,165Z" fill="#f56000" opacity="0.6"/>
+<g transform="translate(255,48)" opacity="0.9">
+  <ellipse cx="45" cy="88" rx="28" ry="40" fill="#0d0018"/>
+  <circle cx="45" cy="40" r="26" fill="#0d0018"/>
+  <path d="M25,22 Q15,-5 20,-15 Q28,5 33,20Z" fill="#0d0018"/><path d="M65,22 Q75,-5 70,-15 Q62,5 57,20Z" fill="#0d0018"/>
+  <path d="M17,60 Q-20,40 -35,55 Q-20,75 17,80Z" fill="#0d0018"/><path d="M73,60 Q110,40 125,55 Q110,75 73,80Z" fill="#0d0018"/>
+  <circle cx="36" cy="38" r="7" fill="#c83000" opacity="0.9"/><circle cx="54" cy="38" r="7" fill="#c83000" opacity="0.9"/>
+  <circle cx="36" cy="38" r="4" fill="#ff5000"/><circle cx="54" cy="38" r="4" fill="#ff5000"/>
+  <circle cx="37" cy="37" r="2" fill="#fff" opacity="0.7"/><circle cx="55" cy="37" r="2" fill="#fff" opacity="0.7"/>
+  <path d="M17,98 L5,113 L10,100 L0,114 L12,103 L8,118Z" fill="#0d0018"/>
+  <path d="M73,98 L85,113 L80,100 L90,114 L78,103 L82,118Z" fill="#0d0018"/>
+</g>
+<text x="300" y="176" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="#c040ff" opacity="0.65" letter-spacing="5">💀  UNDERWORLD  💀</text>
+</svg>`,
+
+ruins: `<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="ru-bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#100800"/><stop offset="100%" stop-color="#201000"/>
+  </linearGradient>
+  <radialGradient id="ru-glow" cx="50%" cy="80%" r="50%">
+    <stop offset="0%" stop-color="#ffcc44" stop-opacity="0.2"/><stop offset="100%" stop-color="#ffcc44" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="600" height="180" fill="url(#ru-bg)"/>
+<rect width="600" height="180" fill="url(#ru-glow)"/>
+<circle cx="40" cy="20" r="1" fill="#ffcc44" opacity="0.5"/><circle cx="150" cy="15" r="1" fill="#ffcc44" opacity="0.4"/><circle cx="450" cy="10" r="1" fill="#ffcc44" opacity="0.5"/><circle cx="560" cy="22" r="1" fill="#ffcc44" opacity="0.4"/>
+<rect x="0" y="155" width="600" height="25" fill="#1a1000"/>
+<line x1="0" y1="157" x2="600" y2="157" stroke="#2a1800" stroke-width="1.5"/>
+<line x1="100" y1="157" x2="100" y2="180" stroke="#2a1800" stroke-width="1"/><line x1="200" y1="157" x2="200" y2="180" stroke="#2a1800" stroke-width="1"/><line x1="300" y1="157" x2="300" y2="180" stroke="#2a1800" stroke-width="1"/><line x1="400" y1="157" x2="400" y2="180" stroke="#2a1800" stroke-width="1"/><line x1="500" y1="157" x2="500" y2="180" stroke="#2a1800" stroke-width="1"/>
+<rect x="60" y="60" width="30" height="95" fill="#281800" rx="2"/><rect x="56" y="56" width="38" height="12" fill="#302000" rx="2"/><rect x="52" y="44" width="42" height="14" fill="#302000" rx="2"/>
+<rect x="150" y="20" width="30" height="135" fill="#281800" rx="2"/><rect x="146" y="16" width="38" height="12" fill="#302000" rx="2"/><rect x="142" y="5" width="46" height="14" fill="#302000" rx="2"/>
+<rect x="350" y="45" width="30" height="110" fill="#281800" rx="2"/><rect x="346" y="41" width="38" height="12" fill="#302000" rx="2"/>
+<rect x="390" y="148" width="70" height="20" fill="#281800" rx="3" transform="rotate(-5 390 158)"/>
+<rect x="480" y="15" width="30" height="140" fill="#281800" rx="2"/><rect x="476" y="11" width="38" height="12" fill="#302000" rx="2"/><rect x="472" y="0" width="46" height="14" fill="#302000" rx="2"/>
+<rect x="66" y="90" width="18" height="5" fill="#ffcc44" opacity="0.3" rx="2"/><rect x="156" y="80" width="18" height="5" fill="#ffcc44" opacity="0.35" rx="2"/><rect x="356" y="100" width="18" height="5" fill="#ffcc44" opacity="0.3" rx="2"/><rect x="486" y="75" width="18" height="5" fill="#ffcc44" opacity="0.35" rx="2"/>
+<circle cx="300" cy="135" r="12" fill="#201000"/><circle cx="300" cy="135" r="8" fill="#ffcc44" opacity="0.35"/><circle cx="300" cy="135" r="5" fill="#ffee88" opacity="0.65"/><circle cx="300" cy="135" r="2.5" fill="#fff" opacity="0.7"/>
+<g transform="translate(248,38)" opacity="0.9">
+  <rect x="20" y="50" width="60" height="75" fill="#1a0e00" rx="4"/>
+  <rect x="22" y="20" width="56" height="32" fill="#1a0e00" rx="3"/>
+  <rect x="0" y="50" width="20" height="55" fill="#1a0e00" rx="3"/><rect x="80" y="50" width="20" height="55" fill="#1a0e00" rx="3"/>
+  <rect x="-4" y="100" width="28" height="22" fill="#1a0e00" rx="3"/><rect x="76" y="100" width="28" height="22" fill="#1a0e00" rx="3"/>
+  <rect x="25" y="123" width="22" height="30" fill="#1a0e00" rx="2"/><rect x="53" y="123" width="22" height="30" fill="#1a0e00" rx="2"/>
+  <rect x="30" y="30" width="14" height="8" fill="#ffcc44" opacity="0.8" rx="2"/><rect x="56" y="30" width="14" height="8" fill="#ffcc44" opacity="0.8" rx="2"/>
+  <circle cx="50" cy="88" r="10" fill="#201000"/><circle cx="50" cy="88" r="7" fill="#ffcc44" opacity="0.4"/><circle cx="50" cy="88" r="4" fill="#ffee88" opacity="0.6"/>
+</g>
+<text x="300" y="176" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="#ffcc44" opacity="0.65" letter-spacing="5">🏛  ANCIENT RUINS  🏛</text>
+</svg>`,
+
+celestial: `<svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="ce-bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#020510"/><stop offset="50%" stop-color="#0a1228"/><stop offset="100%" stop-color="#202840"/>
+  </linearGradient>
+  <radialGradient id="ce-glow" cx="50%" cy="30%" r="40%">
+    <stop offset="0%" stop-color="#b8c8ff" stop-opacity="0.35"/><stop offset="100%" stop-color="#b8c8ff" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect width="600" height="180" fill="url(#ce-bg)"/>
+<rect width="600" height="180" fill="url(#ce-glow)"/>
+<circle cx="50" cy="15" r="2" fill="#b8c8ff" opacity="0.9"/><circle cx="100" cy="8" r="1.5" fill="#b8c8ff" opacity="0.8"/><circle cx="160" cy="20" r="2" fill="#b8c8ff" opacity="0.9"/><circle cx="220" cy="10" r="1.5" fill="#b8c8ff" opacity="0.7"/><circle cx="270" cy="18" r="2" fill="#b8c8ff" opacity="0.8"/><circle cx="350" cy="12" r="1.5" fill="#b8c8ff" opacity="0.9"/><circle cx="410" cy="22" r="2" fill="#b8c8ff" opacity="0.8"/><circle cx="470" cy="6" r="1.5" fill="#b8c8ff" opacity="0.7"/><circle cx="530" cy="18" r="2" fill="#b8c8ff" opacity="0.9"/><circle cx="580" cy="10" r="1.5" fill="#b8c8ff" opacity="0.8"/>
+<line x1="50" y1="15" x2="100" y2="8" stroke="#b8c8ff" stroke-width="0.5" opacity="0.3"/><line x1="100" y1="8" x2="160" y2="20" stroke="#b8c8ff" stroke-width="0.5" opacity="0.3"/><line x1="350" y1="12" x2="410" y2="22" stroke="#b8c8ff" stroke-width="0.5" opacity="0.3"/><line x1="410" y1="22" x2="470" y2="6" stroke="#b8c8ff" stroke-width="0.5" opacity="0.3"/>
+<path d="M300,0 L260,180" stroke="#b8c8ff" stroke-width="1.5" opacity="0.05"/><path d="M300,0 L285,180" stroke="#b8c8ff" stroke-width="2.5" opacity="0.07"/><path d="M300,0 L300,180" stroke="#b8c8ff" stroke-width="4" opacity="0.09"/><path d="M300,0 L315,180" stroke="#b8c8ff" stroke-width="2.5" opacity="0.07"/><path d="M300,0 L340,180" stroke="#b8c8ff" stroke-width="1.5" opacity="0.05"/>
+<polygon points="0,180 100,60 200,180" fill="#101828"/><polygon points="100,180 220,40 340,180" fill="#131d2e"/><polygon points="260,180 380,50 500,180" fill="#101828"/><polygon points="400,180 520,65 600,180" fill="#131d2e"/>
+<polygon points="100,62 112,90 88,90" fill="#c8d8ff" opacity="0.6"/><polygon points="220,42 236,78 204,78" fill="#c8d8ff" opacity="0.7"/><polygon points="380,52 395,84 365,84" fill="#c8d8ff" opacity="0.6"/><polygon points="520,67 533,95 507,95" fill="#c8d8ff" opacity="0.7"/>
+<rect x="260" y="100" width="80" height="55" fill="#0a1228" stroke="#b8c8ff" stroke-width="1.5" opacity="0.8" rx="2"/>
+<rect x="260" y="88" width="20" height="70" fill="#101828" stroke="#b8c8ff" stroke-width="1" opacity="0.9"/>
+<rect x="320" y="88" width="20" height="70" fill="#101828" stroke="#b8c8ff" stroke-width="1" opacity="0.9"/>
+<path d="M260,100 Q300,80 340,100" fill="#0a1228" stroke="#b8c8ff" stroke-width="1.5" opacity="0.8"/>
+<ellipse cx="300" cy="95" rx="50" ry="20" fill="#b8c8ff" opacity="0.1"/>
+<g transform="translate(276,86)" opacity="0.9">
+  <rect x="16" y="55" width="12" height="25" fill="#081018" rx="2"/><rect x="30" y="55" width="12" height="25" fill="#081018" rx="2"/>
+  <rect x="10" y="22" width="38" height="35" fill="#081018" rx="3"/>
+  <rect x="0" y="24" width="10" height="28" fill="#081018" rx="2"/><rect x="48" y="24" width="10" height="28" fill="#081018" rx="2"/>
+  <rect x="55" y="10" width="4" height="45" fill="#081018" rx="1"/><rect x="50" y="27" width="14" height="4" fill="#081018" rx="1"/>
+  <ellipse cx="5" cy="35" rx="8" ry="12" fill="#081018"/>
+  <circle cx="29" cy="14" r="13" fill="#081018"/>
+  <rect x="20" y="10" width="18" height="5" fill="#b8c8ff" opacity="0.7" rx="2"/>
+</g>
+<text x="300" y="176" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="#b8c8ff" opacity="0.65" letter-spacing="5">✨  CELESTIAL PEAK  ✨</text>
+</svg>`
+};
+
+const ENEMY_SVG = {
+dragon: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="dr-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#1a2a4a"/><stop offset="100%" stop-color="#020810"/></radialGradient>
+  <radialGradient id="dr-glow" cx="50%" cy="45%"><stop offset="0%" stop-color="#7ec8e3" stop-opacity="0.3"/><stop offset="100%" stop-color="#7ec8e3" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#dr-bg)"/><ellipse cx="200" cy="100" rx="150" ry="100" fill="url(#dr-glow)"/>
+<ellipse cx="200" cy="130" rx="75" ry="45" fill="#071528"/>
+<path d="M170,100 Q160,70 175,50 Q195,35 215,55 Q225,75 210,100Z" fill="#071528"/>
+<path d="M165,50 Q160,25 185,18 Q210,12 225,30 Q235,48 215,58 Q195,65 175,55Z" fill="#081a30"/>
+<path d="M175,55 Q180,65 200,68 Q220,65 225,58 Q215,70 200,73 Q185,72 175,63Z" fill="#061020"/>
+<path d="M185,30 Q200,22 215,30 Q218,38 200,40 Q182,38 185,30Z" fill="#061020"/>
+<ellipse cx="183" cy="35" rx="9" ry="7" fill="#7ec8e3" opacity="0.9"/><ellipse cx="183" cy="35" rx="5" ry="4" fill="#4ab8d8"/><circle cx="183" cy="35" r="2.5" fill="#fff" opacity="0.9"/>
+<path d="M175,22 Q162,5 168,-2 Q178,10 182,22Z" fill="#061020"/><path d="M218,24 Q225,5 219,-2 Q212,10 210,24Z" fill="#061020"/>
+<path d="M125,80 Q50,30 20,50 Q50,80 100,100 Q80,90 125,110Z" fill="#071528"/><path d="M275,80 Q350,30 380,50 Q350,80 300,100 Q320,90 275,110Z" fill="#071528"/>
+<line x1="125" y1="80" x2="40" y2="38" stroke="#0a2040" stroke-width="1"/><line x1="125" y1="80" x2="60" y2="75" stroke="#0a2040" stroke-width="1"/><line x1="275" y1="80" x2="360" y2="38" stroke="#0a2040" stroke-width="1"/><line x1="275" y1="80" x2="340" y2="75" stroke="#0a2040" stroke-width="1"/>
+<path d="M270,150 Q320,170 350,155 Q370,140 360,128 Q345,135 330,148 Q310,160 275,145Z" fill="#071528"/>
+<path d="M350,130 L368,118 L362,132 L375,124 L365,136Z" fill="#071528"/>
+<path d="M215,55 Q260,40 310,35 Q290,48 280,55 Q310,50 355,48 Q330,62 295,68 Q320,66 350,70 Q320,82 285,80 Q265,78 250,70 Q235,62 215,58Z" fill="#f56020" opacity="0.7"/>
+<path d="M215,55 Q255,43 298,40 Q280,52 272,58 Q300,54 340,52 Q315,64 283,68Z" fill="#ffcc00" opacity="0.6"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#7ec8e3" opacity="0.8" letter-spacing="4">⚔  DRAGON</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#7ec8e3" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+witch: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="wi-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#180830"/><stop offset="100%" stop-color="#040010"/></radialGradient>
+  <radialGradient id="wi-glow" cx="38%" cy="32%"><stop offset="0%" stop-color="#8040ff" stop-opacity="0.35"/><stop offset="100%" stop-color="#8040ff" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#wi-bg)"/><ellipse cx="155" cy="75" rx="120" ry="90" fill="url(#wi-glow)"/>
+<path d="M150,165 Q120,155 100,170 L115,185 Q150,175 200,185 Q250,175 285,185 L300,170 Q280,155 250,165 Q225,170 200,168 Q175,170 150,165Z" fill="#0c0020"/>
+<path d="M155,82 Q130,98 115,132 Q100,162 115,177 Q150,182 200,184 Q250,182 285,177 Q300,162 285,132 Q270,98 245,82Z" fill="#0c0020"/>
+<path d="M155,92 Q110,87 80,102 Q65,112 75,127 Q90,120 120,112 Q140,107 155,107Z" fill="#0c0020"/>
+<line x1="75" y1="124" x2="55" y2="30" stroke="#0c0020" stroke-width="6" stroke-linecap="round"/>
+<circle cx="55" cy="28" r="18" fill="#5020a0" opacity="0.5"/><circle cx="55" cy="28" r="12" fill="#8040ff" opacity="0.7"/><circle cx="55" cy="28" r="7" fill="#c080ff" opacity="0.9"/><circle cx="55" cy="28" r="3.5" fill="#fff" opacity="0.8"/>
+<circle cx="40" cy="45" r="2.5" fill="#8040ff" opacity="0.6"/><circle cx="72" cy="15" r="2" fill="#8040ff" opacity="0.5"/><circle cx="35" cy="20" r="1.5" fill="#c080ff" opacity="0.7"/><circle cx="80" cy="40" r="2" fill="#c080ff" opacity="0.5"/>
+<path d="M245,92 Q290,87 320,102 Q335,112 325,127 Q310,120 280,112 Q260,107 245,107Z" fill="#0c0020"/>
+<rect x="188" y="62" width="24" height="22" fill="#100025" rx="3"/>
+<ellipse cx="200" cy="50" rx="32" ry="38" fill="#100025"/>
+<path d="M168,22 Q200,-25 232,22 Q220,30 200,32 Q180,30 168,22Z" fill="#0c0020"/>
+<ellipse cx="200" cy="24" rx="45" ry="8" fill="#0c0020"/>
+<ellipse cx="188" cy="47" rx="9" ry="7" fill="#8040ff" opacity="0.8"/><ellipse cx="212" cy="47" rx="9" ry="7" fill="#8040ff" opacity="0.8"/>
+<circle cx="188" cy="47" r="4" fill="#c080ff"/><circle cx="212" cy="47" r="4" fill="#c080ff"/>
+<circle cx="189" cy="46" r="2" fill="#fff" opacity="0.7"/><circle cx="213" cy="46" r="2" fill="#fff" opacity="0.7"/>
+<path d="M186,62 Q200,70 214,62" stroke="#1a0038" stroke-width="2" fill="none"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#c080ff" opacity="0.8" letter-spacing="4">⚔  WITCH</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#c080ff" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+demon: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="de-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#200010"/><stop offset="100%" stop-color="#050008"/></radialGradient>
+  <radialGradient id="de-glow" cx="50%" cy="45%"><stop offset="0%" stop-color="#c83000" stop-opacity="0.35"/><stop offset="100%" stop-color="#c83000" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#de-bg)"/><ellipse cx="200" cy="100" rx="140" ry="100" fill="url(#de-glow)"/>
+<path d="M50,185 Q40,158 50,136 Q60,114 55,100 Q65,120 70,136 Q75,158 65,185Z" fill="#c83000" opacity="0.45"/>
+<path d="M320,185 Q310,155 320,130 Q330,105 325,88 Q336,110 340,130 Q345,155 335,185Z" fill="#c83000" opacity="0.45"/>
+<ellipse cx="200" cy="148" rx="55" ry="55" fill="#100018"/>
+<path d="M145,122 Q90,97 70,112 Q85,132 135,142Z" fill="#100018"/><path d="M255,122 Q310,97 330,112 Q315,132 265,142Z" fill="#100018"/>
+<path d="M73,110 L58,97 L68,114 L50,107 L65,120 L48,117 L65,127Z" fill="#100018"/>
+<path d="M327,110 L342,97 L332,114 L350,107 L335,120 L352,117 L335,127Z" fill="#100018"/>
+<rect x="178" y="74" width="44" height="30" fill="#100018" rx="5"/>
+<ellipse cx="200" cy="67" rx="52" ry="48" fill="#140020"/>
+<path d="M162,42 Q140,5 148,-8 Q162,12 172,40Z" fill="#100018"/><path d="M238,42 Q260,5 252,-8 Q238,12 228,40Z" fill="#100018"/>
+<path d="M175,30 Q162,8 167,0 Q176,16 180,28Z" fill="#100018"/><path d="M225,30 Q238,8 233,0 Q224,16 220,28Z" fill="#100018"/>
+<ellipse cx="183" cy="60" rx="14" ry="11" fill="#c83000"/><ellipse cx="217" cy="60" rx="14" ry="11" fill="#c83000"/>
+<ellipse cx="183" cy="60" rx="9" ry="7" fill="#ff5000"/><ellipse cx="217" cy="60" rx="9" ry="7" fill="#ff5000"/>
+<circle cx="183" cy="60" r="4" fill="#fff" opacity="0.7"/><circle cx="217" cy="60" r="4" fill="#fff" opacity="0.7"/>
+<path d="M178,82 Q200,92 222,82 Q215,96 200,99 Q185,96 178,82Z" fill="#0d0018"/>
+<polygon points="185,85 188,94 191,85" fill="#c8b080" opacity="0.8"/><polygon points="197,87 200,97 203,87" fill="#c8b080" opacity="0.8"/><polygon points="209,85 212,94 215,85" fill="#c8b080" opacity="0.8"/>
+<path d="M152,97 Q80,62 50,82 Q80,112 148,130Z" fill="#100018"/><path d="M248,97 Q320,62 350,82 Q320,112 252,130Z" fill="#100018"/>
+<line x1="155" y1="97" x2="55" y2="67" stroke="#1a0028" stroke-width="1.5"/><line x1="155" y1="97" x2="70" y2="97" stroke="#1a0028" stroke-width="1.5"/><line x1="245" y1="97" x2="345" y2="67" stroke="#1a0028" stroke-width="1.5"/><line x1="245" y1="97" x2="330" y2="97" stroke="#1a0028" stroke-width="1.5"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#c040ff" opacity="0.8" letter-spacing="4">⚔  DEMON</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#c040ff" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+mummy: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="mu-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#1a1200"/><stop offset="100%" stop-color="#060400"/></radialGradient>
+  <radialGradient id="mu-glow" cx="50%" cy="40%"><stop offset="0%" stop-color="#c8a020" stop-opacity="0.3"/><stop offset="100%" stop-color="#c8a020" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#mu-bg)"/><ellipse cx="200" cy="100" rx="120" ry="90" fill="url(#mu-glow)"/>
+<rect x="155" y="80" width="90" height="100" fill="#1a1200" rx="5"/>
+<rect x="158" y="178" width="35" height="35" fill="#1a1200" rx="3"/><rect x="207" y="178" width="35" height="35" fill="#1a1200" rx="3"/>
+<rect x="65" y="80" width="90" height="28" fill="#1a1200" rx="4"/><rect x="245" y="80" width="90" height="28" fill="#1a1200" rx="4"/>
+<path d="M58,80 L50,72" stroke="#1a1200" stroke-width="6" stroke-linecap="round"/><path d="M62,78 L56,68" stroke="#1a1200" stroke-width="5" stroke-linecap="round"/><path d="M67,77 L62,66" stroke="#1a1200" stroke-width="5" stroke-linecap="round"/><path d="M72,76 L69,65" stroke="#1a1200" stroke-width="4" stroke-linecap="round"/>
+<path d="M342,80 L350,72" stroke="#1a1200" stroke-width="6" stroke-linecap="round"/><path d="M338,78 L344,68" stroke="#1a1200" stroke-width="5" stroke-linecap="round"/><path d="M333,77 L338,66" stroke="#1a1200" stroke-width="5" stroke-linecap="round"/><path d="M328,76 L331,65" stroke="#1a1200" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="200" cy="52" rx="35" ry="40" fill="#1a1200"/>
+<line x1="160" y1="92" x2="240" y2="87" stroke="#100e00" stroke-width="4"/><line x1="158" y1="107" x2="240" y2="102" stroke="#100e00" stroke-width="4"/><line x1="159" y1="122" x2="240" y2="120" stroke="#100e00" stroke-width="4"/><line x1="161" y1="140" x2="239" y2="137" stroke="#100e00" stroke-width="4"/><line x1="163" y1="157" x2="237" y2="155" stroke="#100e00" stroke-width="4"/>
+<line x1="168" y1="22" x2="232" y2="16" stroke="#100e00" stroke-width="3"/><line x1="166" y1="38" x2="234" y2="33" stroke="#100e00" stroke-width="3"/><line x1="167" y1="54" x2="233" y2="51" stroke="#100e00" stroke-width="3"/><line x1="168" y1="70" x2="232" y2="68" stroke="#100e00" stroke-width="3"/>
+<line x1="70" y1="84" x2="150" y2="81" stroke="#100e00" stroke-width="3"/><line x1="72" y1="92" x2="152" y2="90" stroke="#100e00" stroke-width="3"/>
+<line x1="250" y1="84" x2="330" y2="81" stroke="#100e00" stroke-width="3"/><line x1="250" y1="92" x2="330" y2="90" stroke="#100e00" stroke-width="3"/>
+<ellipse cx="188" cy="48" rx="10" ry="8" fill="#c8a020" opacity="0.9"/><ellipse cx="212" cy="48" rx="10" ry="8" fill="#c8a020" opacity="0.9"/>
+<circle cx="188" cy="48" r="5" fill="#ffe060"/><circle cx="212" cy="48" r="5" fill="#ffe060"/>
+<circle cx="188" cy="48" r="2.5" fill="#fff" opacity="0.8"/><circle cx="212" cy="48" r="2.5" fill="#fff" opacity="0.8"/>
+<path d="M235,28 Q250,8 270,13 Q255,23 245,33" stroke="#1a1200" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path d="M155,23 Q140,3 120,10 Q138,18 148,30" stroke="#1a1200" stroke-width="5" fill="none" stroke-linecap="round"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#c8a020" opacity="0.8" letter-spacing="4">⚔  MUMMY</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#c8a020" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+golem: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="go-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#201000"/><stop offset="100%" stop-color="#080400"/></radialGradient>
+  <radialGradient id="go-glow" cx="50%" cy="50%"><stop offset="0%" stop-color="#ffcc44" stop-opacity="0.3"/><stop offset="100%" stop-color="#ffcc44" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#go-bg)"/><ellipse cx="200" cy="110" rx="130" ry="90" fill="url(#go-glow)"/>
+<polygon points="100,177 120,162 140,177" fill="#1a0c00" opacity="0.7"/><polygon points="250,172 275,160 295,172" fill="#1a0c00" opacity="0.7"/>
+<rect x="140" y="85" width="120" height="90" fill="#151000" rx="6"/>
+<rect x="148" y="173" width="40" height="35" fill="#151000" rx="4"/><rect x="212" y="173" width="40" height="35" fill="#151000" rx="4"/>
+<rect x="60" y="82" width="80" height="65" fill="#151000" rx="6"/><rect x="260" y="82" width="80" height="65" fill="#151000" rx="6"/>
+<rect x="55" y="143" width="88" height="38" fill="#151000" rx="5"/><rect x="257" y="143" width="88" height="38" fill="#151000" rx="5"/>
+<rect x="155" y="30" width="90" height="60" fill="#181200" rx="5"/>
+<line x1="157" y1="52" x2="185" y2="46" stroke="#201800" stroke-width="1.5"/><line x1="162" y1="68" x2="200" y2="63" stroke="#201800" stroke-width="1"/><line x1="217" y1="58" x2="242" y2="48" stroke="#201800" stroke-width="1.5"/>
+<line x1="147" y1="118" x2="200" y2="108" stroke="#201800" stroke-width="1"/><line x1="200" y1="140" x2="255" y2="130" stroke="#201800" stroke-width="1"/>
+<rect x="168" y="48" width="22" height="12" fill="#ffcc44" opacity="0.7" rx="3"/><rect x="210" y="48" width="22" height="12" fill="#ffcc44" opacity="0.7" rx="3"/>
+<circle cx="200" cy="130" r="20" fill="#201000"/><circle cx="200" cy="130" r="14" fill="#ffcc44" opacity="0.3"/><circle cx="200" cy="130" r="9" fill="#ffee88" opacity="0.6"/><circle cx="200" cy="130" r="5" fill="#fff" opacity="0.7"/>
+<path d="M170,97 L180,112 L168,127" stroke="#ffcc44" stroke-width="1.5" fill="none" opacity="0.4"/><path d="M220,92 L232,110 L225,124" stroke="#ffcc44" stroke-width="1.5" fill="none" opacity="0.4"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#ffcc44" opacity="0.8" letter-spacing="4">⚔  GOLEM</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#ffcc44" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+guardian: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="gu-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#080c20"/><stop offset="100%" stop-color="#020408"/></radialGradient>
+  <radialGradient id="gu-glow" cx="50%" cy="45%"><stop offset="0%" stop-color="#b8c8ff" stop-opacity="0.4"/><stop offset="100%" stop-color="#b8c8ff" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#gu-bg)"/><ellipse cx="200" cy="100" rx="140" ry="100" fill="url(#gu-glow)"/>
+<path d="M200,0 L178,185" stroke="#b8c8ff" stroke-width="1.5" opacity="0.07"/><path d="M200,0 L193,185" stroke="#b8c8ff" stroke-width="2.5" opacity="0.09"/><path d="M200,0 L200,185" stroke="#b8c8ff" stroke-width="4" opacity="0.12"/><path d="M200,0 L207,185" stroke="#b8c8ff" stroke-width="2.5" opacity="0.09"/><path d="M200,0 L222,185" stroke="#b8c8ff" stroke-width="1.5" opacity="0.07"/>
+<circle cx="60" cy="20" r="2" fill="#b8c8ff" opacity="0.8"/><circle cx="110" cy="10" r="1.5" fill="#b8c8ff" opacity="0.6"/><circle cx="300" cy="15" r="2" fill="#b8c8ff" opacity="0.8"/><circle cx="350" cy="8" r="1.5" fill="#b8c8ff" opacity="0.6"/>
+<path d="M143,72 Q70,32 40,52 Q70,82 138,110Z" fill="#0a1028"/><path d="M257,72 Q330,32 360,52 Q330,82 262,110Z" fill="#0a1028"/>
+<line x1="143" y1="74" x2="48" y2="44" stroke="#1a2848" stroke-width="1.5"/><line x1="143" y1="82" x2="52" y2="64" stroke="#1a2848" stroke-width="1.5"/><line x1="143" y1="90" x2="60" y2="77" stroke="#1a2848" stroke-width="1.5"/>
+<line x1="257" y1="74" x2="352" y2="44" stroke="#1a2848" stroke-width="1.5"/><line x1="257" y1="82" x2="348" y2="64" stroke="#1a2848" stroke-width="1.5"/><line x1="257" y1="90" x2="340" y2="77" stroke="#1a2848" stroke-width="1.5"/>
+<path d="M158,82 L148,177 L200,184 L252,177 L242,82Z" fill="#0c1430"/>
+<ellipse cx="148" cy="84" rx="25" ry="16" fill="#0e1838"/><ellipse cx="252" cy="84" rx="25" ry="16" fill="#0e1838"/>
+<rect x="248" y="5" width="8" height="85" fill="#0e1838" rx="2"/><rect x="232" y="42" width="40" height="8" fill="#0e1838" rx="2"/>
+<rect x="250" y="7" width="4" height="83" fill="#b8c8ff" opacity="0.5" rx="1"/>
+<ellipse cx="140" cy="117" rx="22" ry="30" fill="#0c1430"/><ellipse cx="140" cy="117" rx="16" ry="22" fill="#0e1838"/>
+<circle cx="140" cy="117" r="8" fill="#b8c8ff" opacity="0.2"/><circle cx="140" cy="117" r="4" fill="#b8c8ff" opacity="0.5"/>
+<ellipse cx="200" cy="50" rx="30" ry="35" fill="#0e1838"/>
+<rect x="176" y="42" width="48" height="12" fill="#b8c8ff" opacity="0.6" rx="3"/>
+<path d="M185,20 Q200,7 215,20 Q210,26 200,28 Q190,26 185,20Z" fill="#0c1430"/>
+<circle cx="200" cy="100" r="80" fill="none" stroke="#b8c8ff" stroke-width="1" opacity="0.1"/>
+<line x1="158" y1="82" x2="242" y2="82" stroke="#b8c8ff" stroke-width="1" opacity="0.4"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#b8c8ff" opacity="0.8" letter-spacing="4">⚔  GUARDIAN</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#b8c8ff" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+serpent: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="sp-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#001820"/><stop offset="100%" stop-color="#000608"/></radialGradient>
+  <radialGradient id="sp-glow" cx="68%" cy="35%"><stop offset="0%" stop-color="#00e5c0" stop-opacity="0.3"/><stop offset="100%" stop-color="#00e5c0" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#sp-bg)"/><ellipse cx="270" cy="80" rx="160" ry="110" fill="url(#sp-glow)"/>
+<circle cx="60" cy="150" r="4" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.4"/><circle cx="80" cy="100" r="3" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.35"/><circle cx="100" cy="55" r="2.5" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.3"/><circle cx="340" cy="170" r="3" fill="none" stroke="#00e5c0" stroke-width="1" opacity="0.35"/>
+<path d="M60,162 Q120,202 200,187 Q280,172 320,202" fill="none" stroke="#001a20" stroke-width="28"/><path d="M60,162 Q120,202 200,187 Q280,172 320,202" fill="none" stroke="#002a2a" stroke-width="20"/>
+<path d="M100,102 Q200,132 300,107 Q350,90 370,102" fill="none" stroke="#001a20" stroke-width="32"/><path d="M100,102 Q200,132 300,107 Q350,90 370,102" fill="none" stroke="#002a2a" stroke-width="22"/>
+<path d="M300,107 Q330,72 310,47 Q295,30 280,42" fill="none" stroke="#001a20" stroke-width="36"/><path d="M300,107 Q330,72 310,47 Q295,30 280,42" fill="none" stroke="#002a2a" stroke-width="26"/>
+<ellipse cx="275" cy="40" rx="38" ry="24" fill="#002a2a"/><ellipse cx="275" cy="40" rx="32" ry="18" fill="#003838"/>
+<path d="M305,32 Q325,37 328,44 Q318,50 305,47Z" fill="#002a2a"/>
+<polygon points="308,46 314,57 318,46" fill="#c8e8e0" opacity="0.7"/><polygon points="316,44 322,55 326,44" fill="#c8e8e0" opacity="0.7"/>
+<ellipse cx="270" cy="32" rx="11" ry="9" fill="#00e5c0" opacity="0.9"/><circle cx="270" cy="32" r="6" fill="#00ffdd"/><circle cx="270" cy="32" r="3" fill="#fff" opacity="0.8"/>
+<path d="M248,24 Q238,7 230,10 Q240,22 250,30Z" fill="#002a2a"/><path d="M262,20 Q255,2 248,5 Q256,18 264,26Z" fill="#002a2a"/><path d="M278,20 Q275,-2 268,3 Q272,18 278,26Z" fill="#002a2a"/>
+<path d="M290,82 Q300,77 310,82 Q300,87 290,82Z" fill="#003038"/><path d="M210,127 Q222,122 234,127 Q222,132 210,127Z" fill="#003038"/><path d="M150,122 Q162,117 174,122 Q162,127 150,122Z" fill="#003038"/>
+<path d="M295,198 Q320,212 345,200 L330,190 Q315,198 298,190Z" fill="#002a2a"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#00e5c0" opacity="0.8" letter-spacing="4">⚔  SEA SERPENT</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#00e5c0" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`,
+
+monster: `<svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="mo-bg" cx="50%" cy="50%"><stop offset="0%" stop-color="#100015"/><stop offset="100%" stop-color="#040008"/></radialGradient>
+  <radialGradient id="mo-glow" cx="50%" cy="50%"><stop offset="0%" stop-color="#c83000" stop-opacity="0.25"/><stop offset="100%" stop-color="#c83000" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="400" height="220" fill="url(#mo-bg)"/><ellipse cx="200" cy="110" rx="160" ry="120" fill="url(#mo-glow)"/>
+<path d="M130,182 Q80,162 70,122 Q60,82 90,57 Q120,32 160,42 Q190,50 200,57 Q210,50 240,42 Q280,32 310,57 Q340,82 330,122 Q320,162 270,182 Q240,192 200,194 Q160,192 130,182Z" fill="#0d0015"/>
+<path d="M70,122 Q40,102 25,117 Q38,132 65,137Z" fill="#0d0015"/><path d="M330,122 Q360,102 375,117 Q362,132 335,137Z" fill="#0d0015"/>
+<path d="M100,177 Q70,192 60,187 Q75,172 95,167Z" fill="#0d0015"/><path d="M300,177 Q330,192 340,187 Q325,172 305,167Z" fill="#0d0015"/>
+<path d="M140,187 Q120,207 110,204 Q125,190 138,182Z" fill="#0d0015"/><path d="M260,187 Q280,207 290,204 Q275,190 262,182Z" fill="#0d0015"/>
+<path d="M155,187 L140,202 L150,190 L135,200 L148,187Z" fill="#0d0015"/><path d="M245,187 L260,202 L250,190 L265,200 L252,187Z" fill="#0d0015"/>
+<ellipse cx="170" cy="92" rx="18" ry="14" fill="#8a0800" opacity="0.9"/><ellipse cx="230" cy="92" rx="18" ry="14" fill="#8a0800" opacity="0.9"/>
+<ellipse cx="200" cy="72" rx="14" ry="11" fill="#8a0800" opacity="0.8"/>
+<ellipse cx="155" cy="117" rx="10" ry="8" fill="#8a0800" opacity="0.7"/><ellipse cx="245" cy="117" rx="10" ry="8" fill="#8a0800" opacity="0.7"/>
+<ellipse cx="170" cy="92" rx="10" ry="8" fill="#ff3800"/><ellipse cx="230" cy="92" rx="10" ry="8" fill="#ff3800"/>
+<ellipse cx="200" cy="72" rx="8" ry="6" fill="#ff3800"/>
+<ellipse cx="155" cy="117" rx="5" ry="4" fill="#ff3800"/><ellipse cx="245" cy="117" rx="5" ry="4" fill="#ff3800"/>
+<circle cx="171" cy="89" r="3" fill="#fff" opacity="0.7"/><circle cx="231" cy="89" r="3" fill="#fff" opacity="0.7"/><circle cx="200" cy="70" r="2.5" fill="#fff" opacity="0.6"/>
+<path d="M160,142 Q200,167 240,142" fill="#0d0015"/>
+<polygon points="165,145 170,160 175,145" fill="#c8b080" opacity="0.7"/><polygon points="182,149 187,165 192,149" fill="#c8b080" opacity="0.7"/><polygon points="200,150 205,166 210,150" fill="#c8b080" opacity="0.7"/><polygon points="218,149 223,165 228,149" fill="#c8b080" opacity="0.7"/><polygon points="233,145 238,160 243,145" fill="#c8b080" opacity="0.7"/>
+<text x="200" y="202" text-anchor="middle" font-family="Georgia,serif" font-size="14" fill="#ff4000" opacity="0.8" letter-spacing="4">⚔  MONSTER</text>
+<text x="200" y="216" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="#ff4000" opacity="0.5" letter-spacing="2">PREPARE FOR BATTLE</text>
+</svg>`
+};
+
+function getEnemySvgKey(name) {
+  const n = name.toLowerCase();
+  if (n.includes('dragon')) return 'dragon';
+  if (n.includes('witch') || n.includes('hag') || n.includes('sorceress') || n.includes('wizard') || n.includes('mage') || n.includes('warlock')) return 'witch';
+  if (n.includes('demon') || n.includes('devil') || n.includes('fiend') || n.includes('imp')) return 'demon';
+  if (n.includes('mummy') || n.includes('wraith') || n.includes('undead') || n.includes('zombie') || n.includes('specter') || n.includes('spectre')) return 'mummy';
+  if (n.includes('golem') || n.includes('construct') || n.includes('automaton') || n.includes('colossus')) return 'golem';
+  if (n.includes('guardian') || n.includes('celestial') || n.includes('angel') || n.includes('knight') || n.includes('paladin')) return 'guardian';
+  if (n.includes('serpent') || n.includes('kraken') || n.includes('leviathan') || n.includes('hydra') || n.includes('sea') || n.includes('naga')) return 'serpent';
+  return 'monster';
+}
+
+function showScene(kingdom) {
+  const svg = SCENE_SVG[kingdom];
+  if (!svg) return;
+  const panel = document.getElementById('scene-panel');
+  panel.style.opacity = '0';
+  document.getElementById('scene-img').innerHTML = svg;
+  panel.style.display = 'block';
+  requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.opacity = '1'; }));
+}
+
+function showEnemy(name) {
+  const svg = ENEMY_SVG[getEnemySvgKey(name)];
+  if (!svg) return;
+  const panel = document.getElementById('scene-panel');
+  panel.style.opacity = '0';
+  document.getElementById('scene-img').innerHTML = svg;
+  panel.style.display = 'block';
+  requestAnimationFrame(() => requestAnimationFrame(() => { panel.style.opacity = '1'; }));
 }
 
 // ══════════════════════════════════════════════
@@ -1205,6 +1622,7 @@ RESPONSE RULES (follow exactly):
     if (kingdomMatch) {
       state.kingdom = kingdomMatch[1];
       if (!state.visitedKingdoms.includes(state.kingdom)) state.visitedKingdoms.push(state.kingdom);
+      showScene(state.kingdom);
       const statusMap = {sky:'sky-status',sea:'sea-status',under:'under-status',ruins:'ruins-status',celestial:'celestial-status'};
       const sid = statusMap[state.kingdom];
       if (sid) document.getElementById(sid).textContent = 'Exploring';
@@ -1243,11 +1661,13 @@ RESPONSE RULES (follow exactly):
     if (combatMatch && !state.inCombat) {
       state.inCombat = true;
       state.currentEnemy = combatMatch[1].trim();
+      showEnemy(state.currentEnemy);
     }
     if (combatEnd) {
       recordKill(state.currentEnemy);
       state.inCombat = false;
       state.currentEnemy = null;
+      if (state.kingdom && state.kingdom !== 'none') showScene(state.kingdom);
     }
 
     if (questMatch) addQuest(questMatch[1].trim());

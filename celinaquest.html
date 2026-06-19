@@ -906,8 +906,8 @@ function showPwError(msg) {
 function saveParentKey() {
   snd.click();
   const key = document.getElementById('p-key-input').value.trim();
-  if (!key || !key.startsWith('AIza')) {
-    alert('That doesn\'t look like a valid Gemini key (should start with AIza). Get a free one at aistudio.google.com!');
+  if (!key || key.length < 10) {
+    alert('Please enter your Gemini API key. Get a free one at aistudio.google.com → Get API Key.');
     return;
   }
   localStorage.setItem(API_KEY_STORAGE, key);
